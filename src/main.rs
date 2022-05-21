@@ -17,6 +17,12 @@ enum TankInputMode {
 	Volume,
 }
 
+#[derive(PartialEq, Eq, Debug, Clone, Copy, clap::ArgEnum)]
+enum DosingMethod {
+	Dry,
+	Solution,
+}
+
 #[derive(Debug, Parser)]
 pub(crate) struct Opts {
 	/// Path to the elements json database to use instead of the embedded one
@@ -28,6 +34,9 @@ pub(crate) struct Opts {
 	/// Optional path for a json file with tank definition
 	#[clap(long, parse(from_os_str))]
 	tank_json: Option<PathBuf>,
+	/// How a fertiliser is added
+	#[clap(long, arg_enum, default_value = "dry")]
+	dosing_method: DosingMethod,
 }
 
 fn main() -> Result<()> {
@@ -65,8 +74,12 @@ fn main() -> Result<()> {
 
 	println!("{:?}", &tank);
 
-	let dosing = concentration::DryDosing::new_from_stdin()?;
-	let mut dosages = dosing.dilute(&compound, &known_elements, &tank);
+	let fertilizer : Box<dyn Fertilizer> = Box::new(compound);
+	let dosing : Box<dyn DiluteMethod> = match opts.dosing_method {
+		DosingMethod::Dry => Box::new(concentration::DryDosing::new_from_stdin()?),
+		DosingMethod::Solution => Box::new(concentration::SolutionDosing::new_from_stdin()?)
+	};
+	let mut dosages = dosing.dilute(&fertilizer, &known_elements, &tank);
 	dosages.sort();
 
 	println!("Dose by elements");

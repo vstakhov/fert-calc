@@ -19,6 +19,6 @@ Small features:
 
 * [ ] Hydrates support
 * [ ] Saving for the input values to avoid extra hassle
-* [ ] Solution based dilution
+* [x] Solution based dilution
 * [ ] Solubility warnings
 * [ ] Target solution PH
