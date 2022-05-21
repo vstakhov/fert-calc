@@ -11,7 +11,8 @@
   },
   {
     "name": "H",
-    "molar_mass": 1.0078
+    "molar_mass": 1.0078,
+    "insignificant": true
   },
   {
     "name": "P",
@@ -35,6 +36,7 @@
   },
   {
     "name": "O",
-    "molar_mass": 15.999
+    "molar_mass": 15.999,
+    "insignificant": true
   }
 ]

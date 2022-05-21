@@ -13,7 +13,14 @@ use std::{
 pub struct Element {
 	pub molar_mass: f64,
 	pub name: String,
+	pub insignificant: Option<bool>,
 	pub aliases: Option<Vec<String>>,
+}
+
+impl Element {
+	pub fn is_insignificant(&self) -> bool {
+		self.insignificant.unwrap_or(false)
+	}
 }
 
 impl Hash for Element {

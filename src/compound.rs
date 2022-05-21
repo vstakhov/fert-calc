@@ -177,6 +177,7 @@ impl Compound {
 
 		self.elements
 			.iter()
+			.filter(|(element, _)| return !element.is_insignificant())
 			.map(|(element, cnt)| {
 				let percentage = element.molar_mass * (*cnt as f64) / molar_mass * 100.0;
 
