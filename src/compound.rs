@@ -210,26 +210,8 @@ impl Fertilizer for Compound {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use std::path::Path;
-
-	macro_rules! assert_delta_eq {
-		($x:expr, $y:expr, $d:expr) => {
-			assert!(
-				($x >= $y && $x - $y < $d) || ($x < $y && $y - $x < $d),
-				"assert_delta_eq!({}, {}); {:?} != {:?}",
-				stringify!($x),
-				stringify!($y),
-				$x,
-				$y
-			)
-		};
-	}
-
-	pub const MOLAR_MASS_EPSILON: f64 = 0.001;
-
-	fn load_known_elements() -> KnownElements {
-		KnownElements::new_with_db(Path::new("./elements.json")).unwrap()
-	}
+	use crate::test_utils::*;
+	use crate::assert_delta_eq;
 
 	#[test]
 	fn parse_simple() {

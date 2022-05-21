@@ -5,11 +5,13 @@ use std::{fs, path::PathBuf};
 
 use crate::{concentration::DiluteMethod, traits::Fertilizer};
 
-pub(crate) mod compound;
-pub(crate) mod concentration;
-pub(crate) mod elements;
-pub(crate) mod tank;
-pub(crate) mod traits;
+mod compound;
+mod concentration;
+mod elements;
+mod tank;
+mod traits;
+#[macro_use]
+mod test_utils;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, clap::ArgEnum)]
 enum TankInputMode {
