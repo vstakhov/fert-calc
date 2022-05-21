@@ -1,15 +1,29 @@
 use anyhow::Result;
+use clap::Parser;
 use crossterm::style::Stylize;
-use dialoguer::Input;
 use std::path::Path;
 
 pub(crate) mod compound;
 pub(crate) mod elements;
 
+#[derive(Debug, Parser)]
+pub(crate) struct Opts {
+	/// Path to the elements json database to use instead of the embedded one
+	#[clap(name = "elements", long)]
+	elements: Option<String>,
+}
+
 fn main() -> Result<()> {
-	let known_elements = elements::KnownElements::new_with_db(Path::new("./elements.json"))?;
-	let input_compound: String = Input::new().with_prompt("Input compound (e.g. KNO3)").interact_text()?;
-	let compound = compound::Compound::new(input_compound.as_str(), &known_elements)?;
+	let opts = Opts::parse();
+
+	let known_elements = if let Some(elts_path) = opts.elements {
+		elements::KnownElements::new_with_db(Path::new(elts_path.as_str()))
+	} else {
+		let known_elements_json = include_str!("../elements.json");
+		elements::KnownElements::new_with_string(known_elements_json)
+	}?;
+
+	let compound = compound::Compound::from_stdin(&known_elements)?;
 	println!("Compound: {}", compound.name.clone().bold());
 	println!("Molar mass: {}", compound.molar_mass().to_string().bold());
 	println!("Compounds by elements");

@@ -41,7 +41,11 @@ impl KnownElements {
 	pub fn new_with_db(database: &Path) -> Result<Self> {
 		let data = fs::read_to_string(database)?;
 
-		let json: Vec<Element> = serde_json::from_str(&data)?;
+		KnownElements::new_with_string(data.as_str())
+	}
+
+	pub fn new_with_string(input: &str) -> Result<Self> {
+		let json: Vec<Element> = serde_json::from_str(&input)?;
 
 		Ok(Self { elements: HashMap::from_iter(json.into_iter().map(|e| (e.name.clone(), e))) })
 	}

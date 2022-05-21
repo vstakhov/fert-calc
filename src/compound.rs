@@ -2,6 +2,7 @@ use crate::elements::*;
 use accurate::{sum::Sum2, traits::*};
 use anyhow::{anyhow, Result};
 use crossterm::style::Stylize;
+use dialoguer::Input;
 use std::{
 	collections::HashMap,
 	fmt::{Debug, Display, Formatter},
@@ -146,6 +147,12 @@ impl Compound {
 		Ok(new_compound)
 	}
 
+	/// Returns a compound from stdin
+	pub fn from_stdin(known_elts: &KnownElements) -> Result<Self> {
+		let input_compound: String = Input::new().with_prompt("Input compound (e.g. KNO3)").interact_text()?;
+		Compound::new(input_compound.as_str(), known_elts)
+	}
+
 	/// Returns a molar mass for the compound
 	pub fn molar_mass(&self) -> f64 {
 		self.elements
@@ -154,6 +161,7 @@ impl Compound {
 			.sum()
 	}
 
+	/// Returns percentage for a specific element
 	pub fn element_percentage(&self, element: &Element) -> Option<f64> {
 		let molar_mass = self.molar_mass();
 
@@ -163,7 +171,7 @@ impl Compound {
 		}
 	}
 
-	/// Return all components percentage
+	/// Returns elements percentage for all elements except unimportant
 	pub fn components_percentage(&self, known_elts: &KnownElements) -> Vec<ElementPercentageWithAliases> {
 		let molar_mass = self.molar_mass();
 
@@ -192,6 +200,7 @@ impl Compound {
 	}
 }
 
+/// Element name and it's percentage
 pub struct ElementPercentage {
 	pub element: String,
 	pub percentage: f64,
