@@ -38,5 +38,10 @@
     "name": "O",
     "molar_mass": 15.999,
     "insignificant": true
+  },
+  {
+    "name": "C",
+    "molar_mass": 12.011,
+    "insignificant": true
   }
 ]
