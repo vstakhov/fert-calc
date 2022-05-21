@@ -67,18 +67,18 @@ impl Tank {
 	}
 
 	/// Returns a real volume of the tank (approximately volume * 0.9)
-	pub fn real_volume(&self) -> usize {
+	pub fn effective_volume(&self) -> usize {
 		self.volume.map_or(0, |vol| (vol * REAL_VOLUME_MULT) as usize)
 	}
 
-	pub fn volume(&self) -> usize {
+	pub fn metric_volume(&self) -> usize {
 		self.volume.map_or(0, |vol| vol as usize)
 	}
 }
 
 impl Debug for Tank {
 	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-		write!(f, "Tank: {} liters real, {} liters nominal", self.real_volume(), self.volume())?;
+		write!(f, "Tank: {} liters real, {} liters nominal", self.effective_volume(), self.metric_volume())?;
 
 		Ok(())
 	}
@@ -106,10 +106,10 @@ mod tests {
 	#[test]
 	fn test_tanks() {
 		let tank = Tank::new_from_json(sample_tank_linear()).unwrap();
-		assert_eq!(tank.volume(), 225);
-		assert_eq!(tank.real_volume(), 191);
+		assert_eq!(tank.metric_volume(), 225);
+		assert_eq!(tank.effective_volume(), 191);
 		let tank = Tank::new_from_json(sample_tank_volume()).unwrap();
-		assert_eq!(tank.volume(), 200);
-		assert_eq!(tank.real_volume(), 170);
+		assert_eq!(tank.metric_volume(), 200);
+		assert_eq!(tank.effective_volume(), 170);
 	}
 }

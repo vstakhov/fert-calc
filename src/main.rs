@@ -3,9 +3,13 @@ use clap::Parser;
 use crossterm::style::Stylize;
 use std::{fs, path::PathBuf};
 
+use crate::{concentration::DiluteMethod, traits::Fertilizer};
+
 pub(crate) mod compound;
+pub(crate) mod concentration;
 pub(crate) mod elements;
 pub(crate) mod tank;
+pub(crate) mod traits;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, clap::ArgEnum)]
 enum TankInputMode {
@@ -38,11 +42,13 @@ fn main() -> Result<()> {
 	}?;
 
 	let compound = compound::Compound::from_stdin(&known_elements)?;
-	println!("Compound: {}", compound.name.clone().bold());
+	println!("Compound: {}", compound.name().clone().bold());
 	println!("Molar mass: {}", compound.molar_mass().to_string().bold());
 	println!("Compounds by elements");
+	let mut components = compound.components_percentage(&known_elements);
+	components.sort();
 
-	for displayed_elt in compound.components_percentage(&known_elements) {
+	for displayed_elt in components {
 		println!("{:?}", displayed_elt);
 	}
 
@@ -58,6 +64,16 @@ fn main() -> Result<()> {
 	};
 
 	println!("{:?}", &tank);
+
+	let dosing = concentration::DryDosing::new_from_stdin()?;
+	let mut dosages = dosing.dilute(&compound, &known_elements, &tank);
+	dosages.sort();
+
+	println!("Dose by elements");
+
+	for dosage in dosages {
+		println!("{:?}", &dosage);
+	}
 
 	Ok(())
 }

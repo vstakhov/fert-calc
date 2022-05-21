@@ -1,7 +1,11 @@
-use crate::elements::*;
+use crate::{
+	concentration::{ElementConcentration, ElementsConcentrationsWithAliases},
+	elements::*,
+	traits::Fertilizer,
+};
 use accurate::{sum::Sum2, traits::*};
 use anyhow::{anyhow, Result};
-use crossterm::style::Stylize;
+
 use dialoguer::Input;
 use std::{
 	collections::HashMap,
@@ -162,66 +166,48 @@ impl Compound {
 	}
 
 	/// Returns percentage for a specific element
-	pub fn element_percentage(&self, element: &Element) -> Option<f64> {
+	pub fn element_fraction(&self, element: &Element) -> Option<f64> {
 		let molar_mass = self.molar_mass();
 
 		match self.elements.get(element) {
-			Some(elt_cnt) => Some(element.molar_mass * (*elt_cnt as f64) / molar_mass * 100.0),
+			Some(elt_cnt) => Some(element.molar_mass * (*elt_cnt as f64) / molar_mass),
 			_ => None,
 		}
 	}
+}
 
+impl Fertilizer for Compound {
 	/// Returns elements percentage for all elements except unimportant
-	pub fn components_percentage(&self, known_elts: &KnownElements) -> Vec<ElementPercentageWithAliases> {
+	fn components_percentage(&self, known_elts: &KnownElements) -> Vec<ElementsConcentrationsWithAliases> {
 		let molar_mass = self.molar_mass();
 
 		self.elements
 			.iter()
 			.filter(|(element, _)| return !element.is_insignificant())
 			.map(|(element, cnt)| {
-				let percentage = element.molar_mass * (*cnt as f64) / molar_mass * 100.0;
+				let percentage = element.molar_mass * (*cnt as f64) / molar_mass;
 
-				let aliases: Vec<ElementPercentage> = element.aliases.as_ref().map_or(Vec::new(), |aliases| {
+				let aliases: Vec<ElementConcentration> = element.aliases.as_ref().map_or(Vec::new(), |aliases| {
 					aliases
 						.iter()
 						.map(|alias| {
 							let molecule = Compound::new(alias, known_elts).unwrap();
-							let this_elt_percentage = molecule.element_percentage(element).unwrap_or(0.0);
-							ElementPercentage {
+							let this_elt_percentage = molecule.element_fraction(element).unwrap_or(0.0);
+							ElementConcentration {
 								element: molecule.name.clone(),
-								percentage: percentage / this_elt_percentage * 100.0,
+								concentration: percentage / this_elt_percentage,
 							}
 						})
 						.collect::<Vec<_>>()
 				});
 
-				ElementPercentageWithAliases { element: element.name.clone(), percentage, aliases }
+				ElementsConcentrationsWithAliases { element: element.name.clone(), concentration: percentage, aliases }
 			})
 			.collect::<Vec<_>>()
 	}
-}
 
-/// Element name and it's percentage
-pub struct ElementPercentage {
-	pub element: String,
-	pub percentage: f64,
-}
-/// A special structure used for an element in a compound + all aliases
-pub struct ElementPercentageWithAliases {
-	pub element: String,
-	pub percentage: f64,
-	pub aliases: Vec<ElementPercentage>,
-}
-
-impl Debug for ElementPercentageWithAliases {
-	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-		write!(f, "Element: {} = {:.2}%", self.element.clone().bold(), self.percentage)?;
-
-		for alias in self.aliases.iter() {
-			write!(f, " as {}: {:.2}%", alias.element.clone().bold(), alias.percentage)?;
-		}
-
-		Ok(())
+	fn name(&self) -> &str {
+		self.name.as_str()
 	}
 }
 
