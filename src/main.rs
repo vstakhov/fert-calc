@@ -74,10 +74,10 @@ fn main() -> Result<()> {
 
 	println!("{:?}", &tank);
 
-	let fertilizer : Box<dyn Fertilizer> = Box::new(compound);
-	let dosing : Box<dyn DiluteMethod> = match opts.dosing_method {
+	let fertilizer: Box<dyn Fertilizer> = Box::new(compound);
+	let dosing: Box<dyn DiluteMethod> = match opts.dosing_method {
 		DosingMethod::Dry => Box::new(concentration::DryDosing::new_from_stdin()?),
-		DosingMethod::Solution => Box::new(concentration::SolutionDosing::new_from_stdin()?)
+		DosingMethod::Solution => Box::new(concentration::SolutionDosing::new_from_stdin()?),
 	};
 	let mut dosages = dosing.dilute(&fertilizer, &known_elements, &tank);
 	dosages.sort();

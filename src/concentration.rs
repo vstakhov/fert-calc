@@ -1,10 +1,12 @@
-use std::cmp::Ordering;
 use crate::{elements::KnownElements, tank::Tank, Fertilizer};
 use anyhow::Result;
 use crossterm::style::Stylize;
 use dialoguer::Input;
 use serde::Deserialize;
-use std::fmt::{Debug, Formatter};
+use std::{
+	cmp::Ordering,
+	fmt::{Debug, Formatter},
+};
 
 /// Element name and it's concentration
 pub struct ElementConcentration {
@@ -106,7 +108,12 @@ pub trait DiluteMethod {
 	where
 		Self: Sized;
 	/// Dilute fertilizer in a specific tank using known dilute method
-	fn dilute(&self, fertilizer: &Box<dyn Fertilizer>, known_elements: &KnownElements, tank: &Tank) -> Vec<ElementsDosesWithAliases>;
+	fn dilute(
+		&self,
+		fertilizer: &Box<dyn Fertilizer>,
+		known_elements: &KnownElements,
+		tank: &Tank,
+	) -> Vec<ElementsDosesWithAliases>;
 }
 
 /// A concrete implementation of the dosing with the value in grams
@@ -125,8 +132,12 @@ impl DiluteMethod for DryDosing {
 		Ok(res)
 	}
 
-	fn dilute(&self, fertilizer: &Box<dyn Fertilizer>, known_elements: &KnownElements, tank: &Tank) -> Vec<ElementsDosesWithAliases>
-	{
+	fn dilute(
+		&self,
+		fertilizer: &Box<dyn Fertilizer>,
+		known_elements: &KnownElements,
+		tank: &Tank,
+	) -> Vec<ElementsDosesWithAliases> {
 		// For dry dosing we simply dilute all components by a tank's effective volume
 		let mult = self.0 * 1000.0 / tank.effective_volume() as f64;
 		let concentrations = fertilizer.components_percentage(known_elements);
@@ -172,8 +183,12 @@ impl DiluteMethod for SolutionDosing {
 		Ok(res)
 	}
 
-	fn dilute(&self, fertilizer: &Box<dyn Fertilizer>, known_elements: &KnownElements, tank: &Tank) -> Vec<ElementsDosesWithAliases>
-	{
+	fn dilute(
+		&self,
+		fertilizer: &Box<dyn Fertilizer>,
+		known_elements: &KnownElements,
+		tank: &Tank,
+	) -> Vec<ElementsDosesWithAliases> {
 		let mult = (self.dose * 1000.0 / self.container_volume * self.portion_volume) / tank.effective_volume() as f64;
 		let concentrations = fertilizer.components_percentage(known_elements);
 		concentrations
