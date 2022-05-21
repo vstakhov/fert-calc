@@ -1,0 +1,40 @@
+[
+  {
+    "name": "K",
+    "molar_mass": 39.0983,
+    "aliases": ["K2O"]
+  },
+  {
+    "name": "N",
+    "molar_mass": 14.007,
+    "aliases": ["NO3", "NH4"]
+  },
+  {
+    "name": "H",
+    "molar_mass": 1.0078
+  },
+  {
+    "name": "P",
+    "molar_mass": 30.974,
+    "aliases": ["PO4", "P2O5"]
+  },
+  {
+    "name": "S",
+    "molar_mass": 32.065,
+    "aliases": ["SO4"]
+  },
+  {
+    "name": "Ca",
+    "molar_mass": 40.078,
+    "aliases": ["CaO"]
+  },
+  {
+    "name": "Mg",
+    "molar_mass": 24.305,
+    "aliases": ["MgO"]
+  },
+  {
+    "name": "O",
+    "molar_mass": 15.999
+  }
+]
