@@ -190,13 +190,9 @@ impl Fertilizer for Compound {
 				let aliases: Vec<ElementConcentration> = element.aliases.as_ref().map_or(Vec::new(), |aliases| {
 					aliases
 						.iter()
-						.map(|alias| {
-							let molecule = Compound::new(alias, known_elts).unwrap();
-							let this_elt_percentage = molecule.element_fraction(element).unwrap_or(0.0);
-							ElementConcentration {
-								element: molecule.name.clone(),
-								concentration: percentage / this_elt_percentage,
-							}
+						.map(|alias| ElementConcentration {
+							element: alias.clone(),
+							concentration: percentage * element.to_alias_rate(alias.as_str(), known_elts).unwrap(),
 						})
 						.collect::<Vec<_>>()
 				});

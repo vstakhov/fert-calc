@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use serde::Deserialize;
 use std::{
 	collections::HashMap,
@@ -7,6 +7,8 @@ use std::{
 	hash::{Hash, Hasher},
 	path::Path,
 };
+
+use crate::compound::Compound;
 
 /// A primitive element (not necessarily simple)
 #[derive(Debug, Deserialize, Clone)]
@@ -55,5 +57,17 @@ impl KnownElements {
 		let json: Vec<Element> = serde_json::from_str(&input)?;
 
 		Ok(Self { elements: HashMap::from_iter(json.into_iter().map(|e| (e.name.clone(), e))) })
+	}
+}
+
+impl Element {
+	/// Returns element rate to alias rate where an alias parsed from a string
+	pub fn from_alias_rate(&self, alias: &str, known_elts: &KnownElements) -> Result<f64> {
+		let molecule = Compound::new(alias, known_elts)?;
+		molecule.element_fraction(self).ok_or(anyhow!("invalid alias: {}", alias))
+	}
+	/// Returns alias rate to specific element rate where an alias is parsed from a string
+	pub fn to_alias_rate(&self, alias: &str, known_elts: &KnownElements) -> Result<f64> {
+		self.from_alias_rate(alias, known_elts).map(|rate| 1.0 / rate)
 	}
 }
