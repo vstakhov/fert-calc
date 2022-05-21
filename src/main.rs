@@ -5,6 +5,7 @@ use std::path::Path;
 
 pub(crate) mod compound;
 pub(crate) mod elements;
+pub(crate) mod tank;
 
 #[derive(Debug, Parser)]
 pub(crate) struct Opts {
