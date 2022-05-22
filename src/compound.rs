@@ -107,21 +107,31 @@ impl Compound {
 					acc.clear();
 				}
 			} else {
-				if chr.is_alphabetic() {
+				if chr.is_ascii_uppercase() {
 					if new_compound.process_trail(last_cnt, last_element, &last_subcompound)? {
 						last_element = None;
 						last_cnt = None;
 						last_subcompound = None;
 					}
 
-					acc.push(chr);
-
-					let _ = new_compound.process_acc(acc.as_str(), 1, known_elts).and_then(|elt| {
-						acc.clear();
+					// Previous element
+					if !acc.is_empty() {
+						let elt = new_compound.process_acc(acc.as_str(), 1, known_elts)?;
 						last_element = Some(elt);
-						Ok(())
-					});
+						acc.clear();
+					}
+
+					acc.push(chr);
+				}	else if chr.is_lowercase() {
+					// Lowercase is always end of the element name
+					acc.push(chr);
 				} else if chr.is_digit(10) {
+					if last_subcompound.is_none() && !acc.is_empty() {
+						/* Process leftover */
+						let elt = new_compound.process_acc(acc.as_str(), 1, known_elts)?;
+						last_element = Some(elt);
+						acc.clear();
+					}
 					let cnt = chr.to_digit(10).unwrap();
 
 					last_cnt = match last_cnt {
