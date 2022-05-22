@@ -2,6 +2,7 @@ use crate::{elements::KnownElements, tank::Tank, Fertilizer};
 use anyhow::Result;
 use crossterm::style::Stylize;
 use dialoguer::Input;
+use itertools::Itertools;
 use serde::Deserialize;
 use std::{
 	cmp::Ordering,
@@ -155,6 +156,7 @@ impl DiluteMethod for DryDosing {
 					aliases,
 				}
 			})
+			.sorted()
 			.collect::<Vec<_>>()
 	}
 }
@@ -205,25 +207,23 @@ impl DiluteMethod for SolutionDosing {
 					aliases,
 				}
 			})
+			.sorted()
 			.collect::<Vec<_>>()
 	}
 }
 
 #[cfg(test)]
 mod tests {
-	use crate::compound::Compound;
 	use super::*;
-	use crate::test_utils::*;
-	use crate::assert_delta_eq;
+	use crate::{assert_delta_eq, compound::Compound, test_utils::*};
 
 	#[test]
 	fn test_kno3_dry() {
 		let tank = sample_tank();
 		let known_elts = load_known_elements();
-		let compound : Box<dyn Fertilizer> = Box::new(Compound::new("KNO3", &known_elts).unwrap());
+		let compound: Box<dyn Fertilizer> = Box::new(Compound::new("KNO3", &known_elts).unwrap());
 		let dosing = Box::new(DryDosing(1.0));
-		let mut results = dosing.dilute(&compound, &known_elts, &tank);
-		results.sort();
+		let results = dosing.dilute(&compound, &known_elts, &tank);
 		assert!(!results.is_empty());
 		assert_eq!(results[0].element.as_str(), "K");
 		assert_delta_eq!(results[0].dose, 2.275, MOLAR_MASS_EPSILON);
@@ -235,10 +235,9 @@ mod tests {
 	fn test_kno3_solution() {
 		let tank = sample_tank();
 		let known_elts = load_known_elements();
-		let compound : Box<dyn Fertilizer> = Box::new(Compound::new("KNO3", &known_elts).unwrap());
+		let compound: Box<dyn Fertilizer> = Box::new(Compound::new("KNO3", &known_elts).unwrap());
 		let dosing = Box::new(SolutionDosing { dose: 10.0, container_volume: 1000.0, portion_volume: 100.0 });
-		let mut results = dosing.dilute(&compound, &known_elts, &tank);
-		results.sort();
+		let results = dosing.dilute(&compound, &known_elts, &tank);
 		assert!(!results.is_empty());
 		assert_eq!(results[0].element.as_str(), "K");
 		assert_delta_eq!(results[0].dose, 2.275, MOLAR_MASS_EPSILON);

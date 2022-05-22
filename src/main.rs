@@ -10,6 +10,7 @@ mod concentration;
 mod elements;
 mod tank;
 mod traits;
+#[cfg(test)]
 #[macro_use]
 mod test_utils;
 
@@ -77,12 +78,11 @@ fn main() -> Result<()> {
 	println!("{:?}", &tank);
 
 	let fertilizer: Box<dyn Fertilizer> = Box::new(compound);
-	let dosing: Box<dyn DiluteMethod> = match opts.dosing_method {
-		DosingMethod::Dry => Box::new(concentration::DryDosing::new_from_stdin()?),
-		DosingMethod::Solution => Box::new(concentration::SolutionDosing::new_from_stdin()?),
+	let dosages = match opts.dosing_method {
+		DosingMethod::Dry => concentration::DryDosing::new_from_stdin()?.dilute(&fertilizer, &known_elements, &tank),
+		DosingMethod::Solution =>
+			concentration::SolutionDosing::new_from_stdin()?.dilute(&fertilizer, &known_elements, &tank),
 	};
-	let mut dosages = dosing.dilute(&fertilizer, &known_elements, &tank);
-	dosages.sort();
 
 	println!("Dose by elements");
 

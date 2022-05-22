@@ -210,8 +210,7 @@ impl Fertilizer for Compound {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::test_utils::*;
-	use crate::assert_delta_eq;
+	use crate::{assert_delta_eq, test_utils::*};
 
 	#[test]
 	fn parse_simple() {
