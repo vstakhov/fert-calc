@@ -1,13 +1,15 @@
 use anyhow::Result;
 use clap::Parser;
 use crossterm::style::Stylize;
+use dialoguer::Input;
 use std::{fs, path::PathBuf};
 
-use crate::{concentration::DiluteMethod, traits::Fertilizer};
+use crate::{concentration::DiluteMethod, fertilizers_db::FertilizersDb, traits::Fertilizer};
 
 mod compound;
 mod concentration;
 mod elements;
+mod fertilizers_db;
 mod mix;
 mod tank;
 mod traits;
@@ -30,6 +32,7 @@ enum DosingMethod {
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, clap::ArgEnum)]
 enum FertilizerType {
+	Any,
 	Compound,
 	Mix,
 }
@@ -49,8 +52,11 @@ pub(crate) struct Opts {
 	#[clap(long, arg_enum, default_value = "dry")]
 	dosing_method: DosingMethod,
 	/// What type of fertilizer is checked
-	#[clap(long, arg_enum, default_value = "compound")]
+	#[clap(long, arg_enum, default_value = "any")]
 	fertilizer: FertilizerType,
+	/// What type of fertilizer is checked
+	#[clap(long, parse(from_os_str))]
+	fertilizers_db: Option<PathBuf>,
 }
 
 fn main() -> Result<()> {
@@ -64,7 +70,49 @@ fn main() -> Result<()> {
 		elements::KnownElements::new_with_string(known_elements_json)
 	}?;
 
+	let mut fertilizers_db: FertilizersDb = Default::default();
+
+	if let Some(fertilizers_db_path) = opts.fertilizers_db {
+		let data = fs::read_to_string(fertilizers_db_path.as_path())?;
+		fertilizers_db.load_db(data.as_str(), &known_elements)?;
+	} else {
+		let known_fertilizers_json = include_str!("../fertilizers.json");
+		fertilizers_db.load_db(known_fertilizers_json, &known_elements)?;
+	}
+
 	let fertilizer: Box<dyn Fertilizer> = match opts.fertilizer {
+		FertilizerType::Any => {
+			let input: String = Input::new()
+				.with_prompt("Input a fertilizer (e.g. `Miracle Gro` or a compound (e.g. KNO3)")
+				.interact_text()?;
+
+			let maybe_known_fertilizer = fertilizers_db.known_fertilizers.get(input.as_str());
+
+			match maybe_known_fertilizer {
+				Some(fertilizer_box) => {
+					println!("Fertilizer: {}", fertilizer_box.name().clone().bold());
+					println!("Compounds by elements");
+					let components = fertilizer_box.components_percentage(&known_elements);
+
+					for displayed_elt in components {
+						println!("{:?}", displayed_elt);
+					}
+					dyn_clone::clone(fertilizer_box)
+				},
+				None => {
+					let compound = compound::Compound::new_from_stdin(&known_elements)?;
+					println!("Compound: {}", compound.name().clone().bold());
+					println!("Molar mass: {}", compound.molar_mass().to_string().bold());
+					println!("Compounds by elements");
+					let components = compound.components_percentage(&known_elements);
+
+					for displayed_elt in components {
+						println!("{:?}", displayed_elt);
+					}
+					Box::new(compound)
+				},
+			}
+		},
 		FertilizerType::Compound => {
 			let compound = compound::Compound::new_from_stdin(&known_elements)?;
 			println!("Compound: {}", compound.name().clone().bold());

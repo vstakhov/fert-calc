@@ -13,7 +13,7 @@ Large/important features:
 
 * [x] Agricultural fertilizers and percent based fertilizers
 * [ ] Dosing regimes: EI/Dose to reach the target etc
-* [ ] Custom fertilisers and compounds trivial names (urea, CSM+B etc)
+* [x] Custom fertilisers and compounds trivial names (urea, CSM+B etc)
 
 Small features:
 

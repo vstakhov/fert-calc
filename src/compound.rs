@@ -14,7 +14,7 @@ use std::{
 };
 
 /// A structure that represents a molecule of some compound
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Compound {
 	/// Elements in the compound and their quantity (in atoms)
 	pub elements: HashMap<Element, u32>,

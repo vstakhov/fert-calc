@@ -1,0 +1,12 @@
+{
+  "Miracle Gro": {
+    "compounds": {
+      "N": 0.24,
+      "P2O5": 0.08,
+      "K2O": 0.16
+    }
+  },
+  "Urea": {
+    "formula": "CH4N2O"
+  }
+}

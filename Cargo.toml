@@ -19,6 +19,7 @@ accurate = { version = "0.3.1", features = [] }
 clap = {version = "3.1.18", features = ["derive"]}
 length = "0.2.0"
 itertools = "0.10.3"
+dyn-clone = "1.0.5"
 
 [profile.release]
 lto = true

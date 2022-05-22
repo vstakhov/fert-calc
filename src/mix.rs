@@ -15,7 +15,7 @@ use crate::{
 };
 
 /// Represents a pre-mixed set of elements
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct MixedFertilizer {
 	/// Elements and their percentage in a mix
 	pub elements_composition: HashMap<Element, f64>,
