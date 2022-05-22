@@ -100,7 +100,7 @@ fn main() -> Result<()> {
 					dyn_clone::clone(fertilizer_box)
 				},
 				None => {
-					let compound = compound::Compound::new_from_stdin(&known_elements)?;
+					let compound = compound::Compound::new(input.as_str(),&known_elements)?;
 					println!("Compound: {}", compound.name().clone().bold());
 					println!("Molar mass: {}", compound.molar_mass().to_string().bold());
 					println!("Compounds by elements");
