@@ -11,7 +11,7 @@ This project is created for personal hobby and is not intended to be useful for 
 
 Large/important features:
 
-* [ ] Agricultural fertilizers and percent based fertilizers
+* [x] Agricultural fertilizers and percent based fertilizers
 * [ ] Dosing regimes: EI/Dose to reach the target etc
 * [ ] Custom fertilisers and compounds trivial names (urea, CSM+B etc)
 

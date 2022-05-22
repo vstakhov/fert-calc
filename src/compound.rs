@@ -7,14 +7,18 @@ use accurate::{sum::Sum2, traits::*};
 use anyhow::{anyhow, Result};
 
 use dialoguer::Input;
+use itertools::Itertools;
 use std::{
 	collections::HashMap,
 	fmt::{Debug, Display, Formatter},
 };
 
+/// A structure that represents a molecule of some compound
 #[derive(Debug, Default)]
 pub struct Compound {
+	/// Elements in the compound and their quantity (in atoms)
 	pub elements: HashMap<Element, u32>,
+	/// Name of the compound (e.g. a trivial formula)
 	pub name: String,
 }
 
@@ -152,7 +156,7 @@ impl Compound {
 	}
 
 	/// Returns a compound from stdin
-	pub fn from_stdin(known_elts: &KnownElements) -> Result<Self> {
+	pub fn new_from_stdin(known_elts: &KnownElements) -> Result<Self> {
 		let input_compound: String = Input::new().with_prompt("Input compound (e.g. KNO3)").interact_text()?;
 		Compound::new(input_compound.as_str(), known_elts)
 	}
@@ -199,6 +203,7 @@ impl Fertilizer for Compound {
 
 				ElementsConcentrationsWithAliases { element: element.name.clone(), concentration: percentage, aliases }
 			})
+			.sorted()
 			.collect::<Vec<_>>()
 	}
 

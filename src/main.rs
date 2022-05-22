@@ -8,8 +8,10 @@ use crate::{concentration::DiluteMethod, traits::Fertilizer};
 mod compound;
 mod concentration;
 mod elements;
+mod mix;
 mod tank;
 mod traits;
+
 #[cfg(test)]
 #[macro_use]
 mod test_utils;
@@ -26,6 +28,12 @@ enum DosingMethod {
 	Solution,
 }
 
+#[derive(PartialEq, Eq, Debug, Clone, Copy, clap::ArgEnum)]
+enum FertilizerType {
+	Compound,
+	Mix,
+}
+
 #[derive(Debug, Parser)]
 pub(crate) struct Opts {
 	/// Path to the elements json database to use instead of the embedded one
@@ -40,6 +48,9 @@ pub(crate) struct Opts {
 	/// How a fertiliser is added
 	#[clap(long, arg_enum, default_value = "dry")]
 	dosing_method: DosingMethod,
+	/// What type of fertilizer is checked
+	#[clap(long, arg_enum, default_value = "compound")]
+	fertilizer: FertilizerType,
 }
 
 fn main() -> Result<()> {
@@ -53,16 +64,31 @@ fn main() -> Result<()> {
 		elements::KnownElements::new_with_string(known_elements_json)
 	}?;
 
-	let compound = compound::Compound::from_stdin(&known_elements)?;
-	println!("Compound: {}", compound.name().clone().bold());
-	println!("Molar mass: {}", compound.molar_mass().to_string().bold());
-	println!("Compounds by elements");
-	let mut components = compound.components_percentage(&known_elements);
-	components.sort();
+	let fertilizer: Box<dyn Fertilizer> = match opts.fertilizer {
+		FertilizerType::Compound => {
+			let compound = compound::Compound::new_from_stdin(&known_elements)?;
+			println!("Compound: {}", compound.name().clone().bold());
+			println!("Molar mass: {}", compound.molar_mass().to_string().bold());
+			println!("Compounds by elements");
+			let components = compound.components_percentage(&known_elements);
 
-	for displayed_elt in components {
-		println!("{:?}", displayed_elt);
-	}
+			for displayed_elt in components {
+				println!("{:?}", displayed_elt);
+			}
+			Box::new(compound)
+		},
+		FertilizerType::Mix => {
+			let mix = mix::MixedFertilizer::new_from_stdin(&known_elements)?;
+			println!("Mix: {}", mix.name().clone().bold());
+			println!("Compounds by elements");
+			let components = mix.components_percentage(&known_elements);
+
+			for displayed_elt in components {
+				println!("{:?}", displayed_elt);
+			}
+			Box::new(mix)
+		},
+	};
 
 	let tank = if let Some(tank_json) = &opts.tank_json {
 		let data = fs::read_to_string(tank_json.as_path())?;
@@ -77,7 +103,6 @@ fn main() -> Result<()> {
 
 	println!("{:?}", &tank);
 
-	let fertilizer: Box<dyn Fertilizer> = Box::new(compound);
 	let dosages = match opts.dosing_method {
 		DosingMethod::Dry => concentration::DryDosing::new_from_stdin()?.dilute(&fertilizer, &known_elements, &tank),
 		DosingMethod::Solution =>
