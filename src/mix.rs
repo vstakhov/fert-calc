@@ -8,7 +8,7 @@ use dialoguer::Input;
 use itertools::Itertools;
 
 use crate::{
-	concentration::{ElementConcentration, ElementsConcentrationsWithAliases},
+	concentration::{ElementConcentrationAlias, ElementsConcentrationsWithAliases},
 	elements::{Element, KnownElements},
 	Fertilizer,
 };
@@ -164,17 +164,17 @@ impl Fertilizer for MixedFertilizer {
 			.iter()
 			.filter(|(element, _)| return !element.is_insignificant())
 			.map(|(element, fraction)| {
-				let aliases: Vec<ElementConcentration> = element.aliases.as_ref().map_or(Vec::new(), |aliases| {
+				let aliases: Vec<ElementConcentrationAlias> = element.aliases.as_ref().map_or(Vec::new(), |aliases| {
 					aliases
 						.iter()
-						.map(|alias| ElementConcentration {
-							element: alias.clone(),
+						.map(|alias| ElementConcentrationAlias {
+							element_alias: alias.clone(),
 							concentration: *fraction * element.to_alias_rate(alias.as_str(), known_elts).unwrap(),
 						})
 						.collect::<Vec<_>>()
 				});
 
-				ElementsConcentrationsWithAliases { element: element.name.clone(), concentration: *fraction, aliases }
+				ElementsConcentrationsWithAliases { element: element.clone(), concentration: *fraction, aliases }
 			})
 			.sorted()
 			.collect::<Vec<_>>()
@@ -206,12 +206,12 @@ mod tests {
 		.unwrap();
 		assert_eq!(fert.name(), "NPK-24:8:16");
 		let percentages = fert.components_percentage(&known_elements);
-		assert_eq!(percentages[0].element, "K");
-		assert_delta_eq!(percentages[0].concentration, 13.3 / 100.0, MOLAR_MASS_EPSILON);
-		assert_eq!(percentages[1].element, "N");
-		assert_delta_eq!(percentages[1].concentration, 24.0 / 100.0, MOLAR_MASS_EPSILON);
-		assert_eq!(percentages[2].element, "P");
-		assert_delta_eq!(percentages[2].concentration, 3.5 / 100.0, MOLAR_MASS_EPSILON);
+		assert_eq!(percentages[0].element.name, "N");
+		assert_delta_eq!(percentages[0].concentration, 24.0 / 100.0, MOLAR_MASS_EPSILON);
+		assert_eq!(percentages[1].element.name, "P");
+		assert_delta_eq!(percentages[1].concentration, 3.5 / 100.0, MOLAR_MASS_EPSILON);
+		assert_eq!(percentages[2].element.name, "K");
+		assert_delta_eq!(percentages[2].concentration, 13.3 / 100.0, MOLAR_MASS_EPSILON);
 	}
 
 	// Compare fertilizer declaration for chempak tomato fertilizer
@@ -231,13 +231,13 @@ mod tests {
 		.unwrap();
 		assert_eq!(fert.name(), "NPK+Mg-11:9:30+2.5");
 		let percentages = fert.components_percentage(&known_elements);
-		assert_eq!(percentages[0].element, "K");
-		assert_delta_eq!(percentages[0].concentration, 24.9 / 100.0, MOLAR_MASS_EPSILON);
-		assert_eq!(percentages[1].element, "Mg");
-		assert_delta_eq!(percentages[1].concentration, 1.5 / 100.0, MOLAR_MASS_EPSILON);
-		assert_eq!(percentages[2].element, "N");
-		assert_delta_eq!(percentages[2].concentration, 11.0 / 100.0, MOLAR_MASS_EPSILON);
-		assert_eq!(percentages[3].element, "P");
-		assert_delta_eq!(percentages[3].concentration, 3.9 / 100.0, MOLAR_MASS_EPSILON);
+		assert_eq!(percentages[0].element.name, "N");
+		assert_delta_eq!(percentages[0].concentration, 11.0 / 100.0, MOLAR_MASS_EPSILON);
+		assert_eq!(percentages[1].element.name, "P");
+		assert_delta_eq!(percentages[1].concentration, 3.9 / 100.0, MOLAR_MASS_EPSILON);
+		assert_eq!(percentages[2].element.name, "K");
+		assert_delta_eq!(percentages[2].concentration, 24.9 / 100.0, MOLAR_MASS_EPSILON);
+		assert_eq!(percentages[3].element.name, "Mg");
+		assert_delta_eq!(percentages[3].concentration, 1.5 / 100.0, MOLAR_MASS_EPSILON);
 	}
 }

@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use serde::Deserialize;
 use std::{
+	cmp::Ordering,
 	collections::HashMap,
 	fmt::Debug,
 	fs,
@@ -16,12 +17,16 @@ pub struct Element {
 	pub molar_mass: f64,
 	pub name: String,
 	pub insignificant: Option<bool>,
+	pub priority: Option<u32>,
 	pub aliases: Option<Vec<String>>,
 }
 
 impl Element {
 	pub fn is_insignificant(&self) -> bool {
 		self.insignificant.unwrap_or(false)
+	}
+	pub fn priority(&self) -> u32 {
+		self.priority.unwrap_or(0)
 	}
 }
 
@@ -38,6 +43,22 @@ impl PartialEq for Element {
 }
 
 impl Eq for Element {}
+
+impl PartialOrd for Element {
+	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+		Some(self.cmp(&other))
+	}
+}
+
+impl Ord for Element {
+	fn cmp(&self, other: &Self) -> Ordering {
+		if self.priority() == other.priority() {
+			self.name.cmp(&&other.name)
+		} else {
+			self.priority().cmp(&&other.priority()).reverse()
+		}
+	}
+}
 
 /// Defines static knowledge of all elements we are interested in
 pub struct KnownElements {

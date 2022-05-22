@@ -1,4 +1,4 @@
-use crate::{elements::KnownElements, tank::Tank, Fertilizer};
+use crate::{elements::*, tank::Tank, Fertilizer};
 use anyhow::Result;
 use crossterm::style::Stylize;
 use dialoguer::Input;
@@ -10,23 +10,23 @@ use std::{
 };
 
 /// Element name and it's concentration
-pub struct ElementConcentration {
-	pub element: String,
+pub struct ElementConcentrationAlias {
+	pub element_alias: String,
 	pub concentration: f64,
 }
 /// Concentration of the all elements in a fertilizer with all elements' aliases
 pub struct ElementsConcentrationsWithAliases {
-	pub element: String,
+	pub element: Element,
 	pub concentration: f64,
-	pub aliases: Vec<ElementConcentration>,
+	pub aliases: Vec<ElementConcentrationAlias>,
 }
 
 impl Debug for ElementsConcentrationsWithAliases {
 	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-		write!(f, "Element: {} = {:.2}%", self.element.clone().bold(), self.concentration * 100.0)?;
+		write!(f, "Element: {} = {:.2}%", self.element.name.clone().bold(), self.concentration * 100.0)?;
 
 		for alias in self.aliases.iter() {
-			write!(f, " as {}: {:.2}%", alias.element.clone().bold(), alias.concentration * 100.0)?;
+			write!(f, " as {}: {:.2}%", alias.element_alias.clone().bold(), alias.concentration * 100.0)?;
 		}
 
 		Ok(())
@@ -34,24 +34,24 @@ impl Debug for ElementsConcentrationsWithAliases {
 }
 
 /// Element name and it's dose
-pub struct ElementDose {
-	pub element: String,
+pub struct ElementAliasDose {
+	pub element_alias: String,
 	pub dose: f64,
 }
 /// Dosing of the all elements in a fertilizer with all elements' aliases
 pub struct ElementsDosesWithAliases {
-	pub element: String,
+	pub element: Element,
 	pub dose: f64,
-	pub aliases: Vec<ElementDose>,
+	pub aliases: Vec<ElementAliasDose>,
 }
 
 // Helpers to output and sort structures
 impl Debug for ElementsDosesWithAliases {
 	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-		write!(f, "Element: {} = {:.2} mg/l", self.element.clone().bold(), self.dose)?;
+		write!(f, "Element: {} = {:.2} mg/l", self.element.name.clone().bold(), self.dose)?;
 
 		for alias in self.aliases.iter() {
-			write!(f, " as {}: {:.2} mg/l", alias.element.clone().bold(), alias.dose)?;
+			write!(f, " as {}: {:.2} mg/l", alias.element_alias.clone().bold(), alias.dose)?;
 		}
 
 		Ok(())
@@ -148,7 +148,10 @@ impl DiluteMethod for DryDosing {
 				let aliases = elt_conc
 					.aliases
 					.iter()
-					.map(|alias| ElementDose { element: alias.element.clone(), dose: alias.concentration * mult })
+					.map(|alias| ElementAliasDose {
+						element_alias: alias.element_alias.clone(),
+						dose: alias.concentration * mult,
+					})
 					.collect::<Vec<_>>();
 				ElementsDosesWithAliases {
 					element: elt_conc.element.clone(),
@@ -199,7 +202,10 @@ impl DiluteMethod for SolutionDosing {
 				let aliases = elt_conc
 					.aliases
 					.iter()
-					.map(|alias| ElementDose { element: alias.element.clone(), dose: alias.concentration * mult })
+					.map(|alias| ElementAliasDose {
+						element_alias: alias.element_alias.clone(),
+						dose: alias.concentration * mult,
+					})
 					.collect::<Vec<_>>();
 				ElementsDosesWithAliases {
 					element: elt_conc.element.clone(),
@@ -225,10 +231,10 @@ mod tests {
 		let dosing = Box::new(DryDosing(1.0));
 		let results = dosing.dilute(&compound, &known_elts, &tank);
 		assert!(!results.is_empty());
-		assert_eq!(results[0].element.as_str(), "K");
-		assert_delta_eq!(results[0].dose, 2.275, MOLAR_MASS_EPSILON);
-		assert_eq!(results[1].element.as_str(), "N");
-		assert_delta_eq!(results[1].dose, 0.815, MOLAR_MASS_EPSILON);
+		assert_eq!(results[0].element.name.as_str(), "N");
+		assert_delta_eq!(results[0].dose, 0.815, MOLAR_MASS_EPSILON);
+		assert_eq!(results[1].element.name.as_str(), "K");
+		assert_delta_eq!(results[1].dose, 2.275, MOLAR_MASS_EPSILON);
 	}
 
 	#[test]
@@ -239,9 +245,10 @@ mod tests {
 		let dosing = Box::new(SolutionDosing { dose: 10.0, container_volume: 1000.0, portion_volume: 100.0 });
 		let results = dosing.dilute(&compound, &known_elts, &tank);
 		assert!(!results.is_empty());
-		assert_eq!(results[0].element.as_str(), "K");
-		assert_delta_eq!(results[0].dose, 2.275, MOLAR_MASS_EPSILON);
-		assert_eq!(results[1].element.as_str(), "N");
-		assert_delta_eq!(results[1].dose, 0.815, MOLAR_MASS_EPSILON);
+		assert_eq!(results[0].element.name.as_str(), "N");
+		assert_delta_eq!(results[0].dose, 0.815, MOLAR_MASS_EPSILON);
+		assert_eq!(results[1].element.name.as_str(), "K");
+		assert_delta_eq!(results[1].dose, 2.275, MOLAR_MASS_EPSILON);
+
 	}
 }

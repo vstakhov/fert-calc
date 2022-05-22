@@ -1,5 +1,5 @@
 use crate::{
-	concentration::{ElementConcentration, ElementsConcentrationsWithAliases},
+	concentration::{ElementConcentrationAlias, ElementsConcentrationsWithAliases},
 	elements::*,
 	traits::Fertilizer,
 };
@@ -191,17 +191,17 @@ impl Fertilizer for Compound {
 			.map(|(element, cnt)| {
 				let percentage = element.molar_mass * (*cnt as f64) / molar_mass;
 
-				let aliases: Vec<ElementConcentration> = element.aliases.as_ref().map_or(Vec::new(), |aliases| {
+				let aliases: Vec<ElementConcentrationAlias> = element.aliases.as_ref().map_or(Vec::new(), |aliases| {
 					aliases
 						.iter()
-						.map(|alias| ElementConcentration {
-							element: alias.clone(),
+						.map(|alias| ElementConcentrationAlias {
+							element_alias: alias.clone(),
 							concentration: percentage * element.to_alias_rate(alias.as_str(), known_elts).unwrap(),
 						})
 						.collect::<Vec<_>>()
 				});
 
-				ElementsConcentrationsWithAliases { element: element.name.clone(), concentration: percentage, aliases }
+				ElementsConcentrationsWithAliases { element: element.clone(), concentration: percentage, aliases }
 			})
 			.sorted()
 			.collect::<Vec<_>>()
