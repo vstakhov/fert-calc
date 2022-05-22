@@ -8,6 +8,7 @@ use dialoguer::Input;
 use itertools::Itertools;
 
 use crate::{
+	compound::Compound,
 	concentration::{ElementConcentrationAlias, ElementsConcentrationsWithAliases},
 	elements::{Element, KnownElements},
 	Fertilizer,
@@ -152,6 +153,53 @@ impl MixedFertilizer {
 		let mut res: Self = Default::default();
 		res.name = macros.name_from_npk();
 		res.push_macro_elements(&macros, known_elements);
+
+		Ok(res)
+	}
+
+	/// Parse a mixed fertilizer from a json object
+	pub fn new_from_json_object(name: &str, obj: &serde_json::Value, known_elements: &KnownElements) -> Result<Self> {
+		if !obj.is_object() {
+			return Err(anyhow!("expect input to be a json object"))
+		}
+
+		let compounds = obj
+			.as_object()
+			.unwrap()
+			.get("compounds")
+			.ok_or(anyhow!("no `compounds` object in a mix"))?
+			.as_object()
+			.ok_or(anyhow!("expect compounds to be an object"))?;
+
+		let mut res: Self = Default::default();
+		res.name = name.to_owned();
+
+		// Ineffective, but who cares
+		if !compounds
+			.iter()
+			.all(|(k, v)| v.is_number() && Compound::new(k.as_str(), known_elements).is_ok())
+		{
+			return Err(anyhow!("incorrect compounds definition"))
+		}
+
+		let compounds_portions = compounds.iter().filter(|(_, v)| v.is_number()).map(|(k, v)| {
+			(
+				Compound::new(k.as_str(), known_elements)
+					.unwrap()
+					.components_percentage(known_elements),
+				v.as_f64().unwrap(),
+			)
+		});
+
+		compounds_portions.for_each(|(elements_percentages, portion)| {
+			elements_percentages
+				.iter()
+				.filter(|e| !e.element.is_insignificant())
+				.for_each(|elt_percentage| {
+					*res.elements_composition.entry(elt_percentage.element.clone()).or_default() +=
+						elt_percentage.concentration * portion;
+				})
+		});
 
 		Ok(res)
 	}

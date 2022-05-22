@@ -249,6 +249,5 @@ mod tests {
 		assert_delta_eq!(results[0].dose, 0.815, MOLAR_MASS_EPSILON);
 		assert_eq!(results[1].element.name.as_str(), "K");
 		assert_delta_eq!(results[1].dose, 2.275, MOLAR_MASS_EPSILON);
-
 	}
 }
