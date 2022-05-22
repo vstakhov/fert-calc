@@ -83,7 +83,7 @@ fn main() -> Result<()> {
 	let fertilizer: Box<dyn Fertilizer> = match opts.fertilizer {
 		FertilizerType::Any => {
 			let input: String = Input::new()
-				.with_prompt("Input a fertilizer (e.g. `Miracle Gro` or a compound (e.g. KNO3)")
+				.with_prompt("Input a fertilizer (e.g. `Miracle Gro`) or a compound (e.g. KNO3)")
 				.interact_text()?;
 
 			let maybe_known_fertilizer = fertilizers_db.known_fertilizers.get(input.as_str());
