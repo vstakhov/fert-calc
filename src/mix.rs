@@ -157,18 +157,23 @@ impl MixedFertilizer {
 		Ok(res)
 	}
 
-	/// Parse a mixed fertilizer from a json object
-	pub fn new_from_json_object(name: &str, obj: &serde_json::Value, known_elements: &KnownElements) -> Result<Self> {
-		if !obj.is_object() {
-			return Err(anyhow!("expect input to be a json object"))
+	/// Parse a mixed fertilizer from a toml object
+	pub fn new_from_toml_object(
+		name: &str,
+		obj: &toml::Value,
+		known_elements: &KnownElements,
+		is_percents: bool,
+	) -> Result<Self> {
+		if !obj.is_table() {
+			return Err(anyhow!("expect input to be a toml object"))
 		}
 
 		let compounds = obj
-			.as_object()
+			.as_table()
 			.unwrap()
 			.get("compounds")
 			.ok_or(anyhow!("no `compounds` object in a mix"))?
-			.as_object()
+			.as_table()
 			.ok_or(anyhow!("expect compounds to be an object"))?;
 
 		let mut res: Self = Default::default();
@@ -177,19 +182,22 @@ impl MixedFertilizer {
 		// Ineffective, but who cares
 		if !compounds
 			.iter()
-			.all(|(k, v)| v.is_number() && Compound::new(k.as_str(), known_elements).is_ok())
+			.all(|(k, v)| (v.is_integer() || v.is_float()) && Compound::new(k.as_str(), known_elements).is_ok())
 		{
 			return Err(anyhow!("incorrect compounds definition"))
 		}
 
-		let compounds_portions = compounds.iter().filter(|(_, v)| v.is_number()).map(|(k, v)| {
-			(
-				Compound::new(k.as_str(), known_elements)
-					.unwrap()
-					.components_percentage(known_elements),
-				v.as_f64().unwrap(),
-			)
-		});
+		let compounds_portions = compounds
+			.iter()
+			.filter(|(_, v)| (v.is_integer() || v.is_float()))
+			.map(|(k, v)| {
+				(
+					Compound::new(k.as_str(), known_elements)
+						.unwrap()
+						.components_percentage(known_elements),
+					if is_percents { extract_toml_number(v) / 100.0 } else { extract_toml_number(v) },
+				)
+			});
 
 		compounds_portions.for_each(|(elements_percentages, portion)| {
 			elements_percentages
@@ -230,6 +238,14 @@ impl Fertilizer for MixedFertilizer {
 
 	fn name(&self) -> &str {
 		self.name.as_str()
+	}
+}
+
+fn extract_toml_number(val: &toml::Value) -> f64 {
+	match *val {
+		toml::Value::Float(f) => f,
+		toml::Value::Integer(i) => i as f64,
+		_ => panic!("must not be reached"),
 	}
 }
 

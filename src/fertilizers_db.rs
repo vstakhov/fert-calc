@@ -10,21 +10,21 @@ pub struct FertilizersDb {
 
 impl FertilizersDb {
 	pub fn load_db(&mut self, input: &str, known_elts: &KnownElements) -> Result<()> {
-		let res: serde_json::Value = serde_json::from_str(input)?;
+		let res: toml::Value = toml::from_str(input)?;
 
-		if !res.is_object() {
+		if !res.is_table() {
 			return Err(anyhow!("known fertilizers must be an object"))
 		}
 
-		for (name, obj) in res.as_object().unwrap().iter() {
-			if !obj.is_object() {
+		for (name, obj) in res.as_table().unwrap().iter() {
+			if !obj.is_table() {
 				return Err(anyhow!("fertilizer {} is not an object", name))
 			}
 
-			let fert_obj = obj.as_object().unwrap();
+			let fert_obj = obj.as_table().unwrap();
 
 			if fert_obj.contains_key("compounds") {
-				let mix = Box::new(MixedFertilizer::new_from_json_object(name.as_str(), obj, known_elts)?);
+				let mix = Box::new(MixedFertilizer::new_from_toml_object(name.as_str(), obj, known_elts, true)?);
 				self.known_fertilizers.insert(name.clone(), mix as Box<dyn Fertilizer>);
 			} else if fert_obj.contains_key("formula") {
 				let formula = fert_obj

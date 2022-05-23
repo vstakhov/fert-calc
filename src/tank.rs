@@ -53,9 +53,9 @@ impl Tank {
 		Ok(Self { linear: None, volume: Some(volume) })
 	}
 
-	/// Load tank data from json
-	pub fn new_from_json(input: &str) -> Result<Self> {
-		let mut tank: Tank = serde_json::from_str(&input)?;
+	/// Load tank data from toml
+	pub fn new_from_toml(input: &str) -> Result<Self> {
+		let mut tank: Tank = toml::from_str(&input)?;
 		if tank.volume.is_none() {
 			if let Some(lin) = &tank.linear {
 				tank.volume = Some(lin.length * lin.height * lin.width);
@@ -89,26 +89,25 @@ mod tests {
 	use super::*;
 
 	fn sample_tank_linear() -> &'static str {
-		r#"{
-		"linear": {
-			"height": 5.0,
-			"width": 5.0,
-			"length": 9.0
-		}
-		}"#
+		r#"
+		[linear]
+		  height = 5.0
+		  width = 5.0
+		  length = 9.0
+		  "#
 	}
 	fn sample_tank_volume() -> &'static str {
-		r#"{
-		"volume": 200
-		}"#
+		r#"
+		volume = 200
+		"#
 	}
 
 	#[test]
 	fn test_tanks() {
-		let tank = Tank::new_from_json(sample_tank_linear()).unwrap();
+		let tank = Tank::new_from_toml(sample_tank_linear()).unwrap();
 		assert_eq!(tank.metric_volume(), 225);
 		assert_eq!(tank.effective_volume(), 191);
-		let tank = Tank::new_from_json(sample_tank_volume()).unwrap();
+		let tank = Tank::new_from_toml(sample_tank_volume()).unwrap();
 		assert_eq!(tank.metric_volume(), 200);
 		assert_eq!(tank.effective_volume(), 170);
 	}

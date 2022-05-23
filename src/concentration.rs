@@ -1,5 +1,5 @@
-use crate::{elements::*, tank::Tank, Fertilizer};
-use anyhow::Result;
+use crate::{compound::Compound, elements::*, tank::Tank, Fertilizer};
+use anyhow::{anyhow, Result};
 use crossterm::style::Stylize;
 use dialoguer::Input;
 use itertools::Itertools;
@@ -8,6 +8,19 @@ use std::{
 	cmp::Ordering,
 	fmt::{Debug, Formatter},
 };
+
+/// How do we calculate dilution
+#[derive(Deserialize, Clone, Copy, Debug)]
+pub enum DiluteCalcType {
+	ResultOfDose,
+	TargetDose,
+}
+
+impl Default for DiluteCalcType {
+	fn default() -> Self {
+		DiluteCalcType::ResultOfDose
+	}
+}
 
 /// Element name and it's concentration
 pub struct ElementConcentrationAlias {
@@ -48,10 +61,13 @@ pub struct ElementsDosesWithAliases {
 // Helpers to output and sort structures
 impl Debug for ElementsDosesWithAliases {
 	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-		write!(f, "Element: {} = {:.2} mg/l", self.element.name.clone().bold(), self.dose)?;
+		let adjust_units = |dose: f64| if dose <= 0.01 { (dose * 1000.0, "ug") } else { (dose, "mg") };
+		let (dose, units) = adjust_units(self.dose);
+		write!(f, "Element: {} = {:.3} {}/l", self.element.name.clone().bold(), dose, units)?;
 
 		for alias in self.aliases.iter() {
-			write!(f, " as {}: {:.2} mg/l", alias.element_alias.clone().bold(), alias.dose)?;
+			let (dose, units) = adjust_units(alias.dose);
+			write!(f, " as {}: {:.3} {}/l", alias.element_alias.clone().bold(), dose, units)?;
 		}
 
 		Ok(())
@@ -98,14 +114,19 @@ impl PartialEq for ElementsDosesWithAliases {
 
 impl Eq for ElementsDosesWithAliases {}
 
+pub struct DiluteResult {
+	pub compound_dose: f64,
+	pub elements_dose: Vec<ElementsDosesWithAliases>,
+}
+
 /// Represents a concentration after adding some fertilizer to the specific tank
 pub trait DiluteMethod {
 	/// Load dilute method from stdin
-	fn new_from_stdin() -> Result<Self>
+	fn new_from_stdin(what: DiluteCalcType, known_elements: &KnownElements) -> Result<Self>
 	where
 		Self: Sized;
 	/// Deserialize dilute method from JSON
-	fn new_from_json(json: &str) -> Result<Self>
+	fn new_from_toml(toml: &str) -> Result<Self>
 	where
 		Self: Sized;
 	/// Dilute fertilizer in a specific tank using known dilute method
@@ -114,22 +135,69 @@ pub trait DiluteMethod {
 		fertilizer: &Box<dyn Fertilizer>,
 		known_elements: &KnownElements,
 		tank: &Tank,
-	) -> Vec<ElementsDosesWithAliases>;
+	) -> Result<DiluteResult>;
+}
+
+fn get_element_dose_target(known_elements: &KnownElements) -> Result<(String, f64)> {
+	let input: String = Input::new()
+		.with_prompt("Input target element or compound (e.g. NO3 or N): ")
+		.interact_text()?;
+	let compound = Compound::new(input.as_str(), known_elements)?;
+	let concentrations = compound.components_percentage(known_elements);
+	let top_elt = concentrations[0].element.name.clone();
+	let input: String = Input::new()
+		.with_prompt("Input target element concentration (mg/l): ")
+		.interact_text()?;
+	let target = input.parse::<f64>()?;
+	Ok((top_elt, target * concentrations[0].concentration))
+}
+
+fn dilute_fertilizer(
+	concentrations: Vec<ElementsConcentrationsWithAliases>,
+	mult: f64,
+) -> Vec<ElementsDosesWithAliases> {
+	concentrations
+		.into_iter()
+		.map(|elt_conc| {
+			let aliases = elt_conc
+				.aliases
+				.iter()
+				.map(|alias| ElementAliasDose {
+					element_alias: alias.element_alias.clone(),
+					dose: alias.concentration * mult,
+				})
+				.collect::<Vec<_>>();
+			ElementsDosesWithAliases { element: elt_conc.element.clone(), dose: elt_conc.concentration * mult, aliases }
+		})
+		.sorted()
+		.collect::<Vec<_>>()
 }
 
 /// A concrete implementation of the dosing with the value in grams
-#[derive(Debug, Deserialize, Clone, Copy)]
-pub struct DryDosing(f64);
+#[derive(Default, Debug, Deserialize, Clone)]
+pub struct DryDosing {
+	dilute_input: f64,
+	what: DiluteCalcType,
+	target_element: Option<String>,
+}
 
 impl DiluteMethod for DryDosing {
-	fn new_from_stdin() -> Result<Self> {
-		let input: String = Input::new().with_prompt("Dose size in grams (e.g. 2.5): ").interact_text()?;
-		let dose = input.parse::<f64>()?;
-		Ok(Self(dose))
+	fn new_from_stdin(what: DiluteCalcType, known_elements: &KnownElements) -> Result<Self> {
+		match what {
+			DiluteCalcType::ResultOfDose => {
+				let input: String = Input::new().with_prompt("Dose size in grams (e.g. 2.5): ").interact_text()?;
+				let dose = input.parse::<f64>()?;
+				Ok(Self { dilute_input: dose, what, ..Default::default() })
+			},
+			DiluteCalcType::TargetDose => {
+				let (target_element, dilute_input) = get_element_dose_target(known_elements)?;
+				Ok(Self { dilute_input, what, target_element: Some(target_element) })
+			},
+		}
 	}
 
-	fn new_from_json(json: &str) -> Result<Self> {
-		let res: Self = serde_json::from_str(json)?;
+	fn new_from_toml(toml: &str) -> Result<Self> {
+		let res: Self = toml::from_str(toml)?;
 		Ok(res)
 	}
 
@@ -138,53 +206,72 @@ impl DiluteMethod for DryDosing {
 		fertilizer: &Box<dyn Fertilizer>,
 		known_elements: &KnownElements,
 		tank: &Tank,
-	) -> Vec<ElementsDosesWithAliases> {
-		// For dry dosing we simply dilute all components by a tank's effective volume
-		let mult = self.0 * 1000.0 / tank.effective_volume() as f64;
+	) -> Result<DiluteResult> {
 		let concentrations = fertilizer.components_percentage(known_elements);
-		concentrations
-			.iter()
-			.map(|elt_conc| {
-				let aliases = elt_conc
-					.aliases
-					.iter()
-					.map(|alias| ElementAliasDose {
-						element_alias: alias.element_alias.clone(),
-						dose: alias.concentration * mult,
-					})
-					.collect::<Vec<_>>();
-				ElementsDosesWithAliases {
-					element: elt_conc.element.clone(),
-					dose: elt_conc.concentration * mult,
-					aliases,
-				}
-			})
-			.sorted()
-			.collect::<Vec<_>>()
+		let mult = match self.what {
+			DiluteCalcType::ResultOfDose => self.dilute_input * 1000.0 / tank.effective_volume() as f64,
+			DiluteCalcType::TargetDose => {
+				// Get target element concentration
+				let target_elt = self
+					.target_element
+					.as_ref()
+					.ok_or(anyhow!("no target element defined"))?
+					.as_str();
+				let fert_elt = concentrations
+					.get(
+						concentrations
+							.iter()
+							.position(|elt| elt.element.name == target_elt)
+							.ok_or(anyhow!("target element {} is not in the fertilizer", target_elt))?,
+					)
+					.unwrap();
+				self.dilute_input / fert_elt.concentration
+			},
+		};
+		// For dry dosing we simply dilute all components by a tank's effective volume
+		let concentrations = dilute_fertilizer(concentrations, mult);
+		Ok(DiluteResult {
+			compound_dose: mult * tank.effective_volume() as f64 / 1000.0,
+			elements_dose: concentrations,
+		})
 	}
 }
 
 /// A concrete implementation of the dosing by dissolving dry salt in a concentrated solution
-#[derive(Debug, Deserialize, Clone, Copy)]
+#[derive(Default, Debug, Deserialize, Clone)]
 pub struct SolutionDosing {
 	container_volume: f64,
 	portion_volume: f64,
 	dose: f64,
+	what: DiluteCalcType,
+	target_element: Option<String>,
 }
 
 impl DiluteMethod for SolutionDosing {
-	fn new_from_stdin() -> Result<Self> {
-		let input: String = Input::new().with_prompt("Container size in ml: ").interact_text()?;
-		let container_volume = input.parse::<f64>()?;
-		let input: String = Input::new().with_prompt("Portion size in ml: ").interact_text()?;
-		let portion_volume = input.parse::<f64>()?;
-		let input: String = Input::new().with_prompt("Dose size in grams (e.g. 2.5): ").interact_text()?;
-		let dose = input.parse::<f64>()?;
-		Ok(Self { container_volume, portion_volume, dose })
+	fn new_from_stdin(what: DiluteCalcType, known_elements: &KnownElements) -> Result<Self> {
+		match what {
+			DiluteCalcType::ResultOfDose => {
+				let input: String = Input::new().with_prompt("Container size in ml: ").interact_text()?;
+				let container_volume = input.parse::<f64>()?;
+				let input: String = Input::new().with_prompt("Portion size in ml: ").interact_text()?;
+				let portion_volume = input.parse::<f64>()?;
+				let input: String = Input::new().with_prompt("Dose size in grams (e.g. 2.5): ").interact_text()?;
+				let dose = input.parse::<f64>()?;
+				Ok(Self { container_volume, portion_volume, dose, what, ..Default::default() })
+			},
+			DiluteCalcType::TargetDose => {
+				let (target_element, dose) = get_element_dose_target(known_elements)?;
+				let input: String = Input::new().with_prompt("Container size in ml: ").interact_text()?;
+				let container_volume = input.parse::<f64>()?;
+				let input: String = Input::new().with_prompt("Portion size in ml: ").interact_text()?;
+				let portion_volume = input.parse::<f64>()?;
+				Ok(Self { container_volume, portion_volume, dose, what, target_element: Some(target_element) })
+			},
+		}
 	}
 
-	fn new_from_json(json: &str) -> Result<Self> {
-		let res: Self = serde_json::from_str(json)?;
+	fn new_from_toml(toml: &str) -> Result<Self> {
+		let res: Self = toml::from_str(toml)?;
 		Ok(res)
 	}
 
@@ -193,28 +280,32 @@ impl DiluteMethod for SolutionDosing {
 		fertilizer: &Box<dyn Fertilizer>,
 		known_elements: &KnownElements,
 		tank: &Tank,
-	) -> Vec<ElementsDosesWithAliases> {
-		let mult = (self.dose * 1000.0 / self.container_volume * self.portion_volume) / tank.effective_volume() as f64;
+	) -> Result<DiluteResult> {
 		let concentrations = fertilizer.components_percentage(known_elements);
-		concentrations
-			.iter()
-			.map(|elt_conc| {
-				let aliases = elt_conc
-					.aliases
-					.iter()
-					.map(|alias| ElementAliasDose {
-						element_alias: alias.element_alias.clone(),
-						dose: alias.concentration * mult,
-					})
-					.collect::<Vec<_>>();
-				ElementsDosesWithAliases {
-					element: elt_conc.element.clone(),
-					dose: elt_conc.concentration * mult,
-					aliases,
-				}
-			})
-			.sorted()
-			.collect::<Vec<_>>()
+		let dose = match self.what {
+			DiluteCalcType::ResultOfDose => self.dose,
+			DiluteCalcType::TargetDose => {
+				// Get target element concentration
+				let target_elt = self
+					.target_element
+					.as_ref()
+					.ok_or(anyhow!("no target element defined"))?
+					.as_str();
+				let fert_elt = concentrations
+					.get(
+						concentrations
+							.iter()
+							.position(|elt| elt.element.name == target_elt)
+							.ok_or(anyhow!("target element {} is not in the fertilizer", target_elt))?,
+					)
+					.unwrap();
+				self.dose * tank.effective_volume() as f64 / fert_elt.concentration * self.container_volume /
+					self.portion_volume / 1000.0
+			},
+		};
+		let mult = (dose * 1000.0 / self.container_volume * self.portion_volume) / tank.effective_volume() as f64;
+		let concentrations = dilute_fertilizer(concentrations, mult);
+		Ok(DiluteResult { compound_dose: dose, elements_dose: concentrations })
 	}
 }
 
@@ -228,13 +319,14 @@ mod tests {
 		let tank = sample_tank();
 		let known_elts = load_known_elements();
 		let compound: Box<dyn Fertilizer> = Box::new(Compound::new("KNO3", &known_elts).unwrap());
-		let dosing = Box::new(DryDosing(1.0));
-		let results = dosing.dilute(&compound, &known_elts, &tank);
-		assert!(!results.is_empty());
-		assert_eq!(results[0].element.name.as_str(), "N");
-		assert_delta_eq!(results[0].dose, 0.815, MOLAR_MASS_EPSILON);
-		assert_eq!(results[1].element.name.as_str(), "K");
-		assert_delta_eq!(results[1].dose, 2.275, MOLAR_MASS_EPSILON);
+		let dosing =
+			Box::new(DryDosing { dilute_input: 1.0, what: DiluteCalcType::ResultOfDose, ..Default::default() });
+		let results = dosing.dilute(&compound, &known_elts, &tank).unwrap();
+		assert!(!results.elements_dose.is_empty());
+		assert_eq!(results.elements_dose[0].element.name.as_str(), "N");
+		assert_delta_eq!(results.elements_dose[0].dose, 0.815, MOLAR_MASS_EPSILON);
+		assert_eq!(results.elements_dose[1].element.name.as_str(), "K");
+		assert_delta_eq!(results.elements_dose[1].dose, 2.275, MOLAR_MASS_EPSILON);
 	}
 
 	#[test]
@@ -242,12 +334,18 @@ mod tests {
 		let tank = sample_tank();
 		let known_elts = load_known_elements();
 		let compound: Box<dyn Fertilizer> = Box::new(Compound::new("KNO3", &known_elts).unwrap());
-		let dosing = Box::new(SolutionDosing { dose: 10.0, container_volume: 1000.0, portion_volume: 100.0 });
-		let results = dosing.dilute(&compound, &known_elts, &tank);
-		assert!(!results.is_empty());
-		assert_eq!(results[0].element.name.as_str(), "N");
-		assert_delta_eq!(results[0].dose, 0.815, MOLAR_MASS_EPSILON);
-		assert_eq!(results[1].element.name.as_str(), "K");
-		assert_delta_eq!(results[1].dose, 2.275, MOLAR_MASS_EPSILON);
+		let dosing = Box::new(SolutionDosing {
+			dose: 10.0,
+			container_volume: 1000.0,
+			portion_volume: 100.0,
+			what: DiluteCalcType::ResultOfDose,
+			..Default::default()
+		});
+		let results = dosing.dilute(&compound, &known_elts, &tank).unwrap();
+		assert!(!results.elements_dose.is_empty());
+		assert_eq!(results.elements_dose[0].element.name.as_str(), "N");
+		assert_delta_eq!(results.elements_dose[0].dose, 0.815, MOLAR_MASS_EPSILON);
+		assert_eq!(results.elements_dose[1].element.name.as_str(), "K");
+		assert_delta_eq!(results.elements_dose[1].dose, 2.275, MOLAR_MASS_EPSILON);
 	}
 }

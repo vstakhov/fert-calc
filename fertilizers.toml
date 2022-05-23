@@ -1,0 +1,50 @@
+["Miracle Gro".compounds]
+N = 24
+P2O5 = 8
+K2O = 16
+Fe = 0.19
+Mn = 0.05
+Zn = 0.03
+B = 0.02
+Cu = 0.03
+
+["Solufeed High K".compounds]
+N = 15.0
+P2O5 = 6.9
+K2O = 32.0
+MgO = 3.0
+B = 0.021
+Cu = 0.010
+Fe = 0.175
+Mn = 0.060
+Mo = 0.005
+Zn = 0.075
+
+["Solufeed TEC-SF".compounds]
+MgO = 25.0
+B = 0.09
+Cu = 0.055
+Fe = 1.57
+Mn = 0.67
+Mo = 0.04
+Zn = 0.49
+
+["Solufeed TEC".compounds]
+B = 0.92
+Cu = 0.23
+Fe = 8.4
+Mn = 2.0
+Mo = 0.15
+Zn = 1.16
+
+["Plantex CSM+B".compounds]
+Fe = 6.53
+Mn = 1.87
+Mg = 1.40
+Zn = 0.37
+Cu = 0.09
+Mo = 0.05
+B = 1.18
+
+[Urea]
+formula = "CH4N2O"

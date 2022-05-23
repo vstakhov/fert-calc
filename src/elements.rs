@@ -12,10 +12,18 @@ use std::{
 use crate::compound::Compound;
 
 /// A primitive element (not necessarily simple)
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub struct Element {
 	pub molar_mass: f64,
 	pub name: String,
+	pub insignificant: Option<bool>,
+	pub priority: Option<u32>,
+	pub aliases: Option<Vec<String>>,
+}
+
+#[derive(Deserialize)]
+struct ElementData {
+	pub molar_mass: f64,
 	pub insignificant: Option<bool>,
 	pub priority: Option<u32>,
 	pub aliases: Option<Vec<String>>,
@@ -75,9 +83,24 @@ impl KnownElements {
 	}
 
 	pub fn new_with_string(input: &str) -> Result<Self> {
-		let json: Vec<Element> = serde_json::from_str(&input)?;
+		let elements: HashMap<String, ElementData> = toml::from_str(&input)?;
+		let elements = elements
+			.into_iter()
+			.map(|(name, elt_data)| {
+				(
+					name.clone(),
+					Element {
+						aliases: elt_data.aliases,
+						priority: elt_data.priority,
+						molar_mass: elt_data.molar_mass,
+						insignificant: elt_data.insignificant,
+						name,
+					},
+				)
+			})
+			.collect::<HashMap<_, _>>();
 
-		Ok(Self { elements: HashMap::from_iter(json.into_iter().map(|e| (e.name.clone(), e))) })
+		Ok(Self { elements })
 	}
 }
 

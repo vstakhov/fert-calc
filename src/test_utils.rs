@@ -18,14 +18,14 @@ macro_rules! assert_delta_eq {
 pub const MOLAR_MASS_EPSILON: f64 = 0.001;
 
 pub fn load_known_elements() -> KnownElements {
-	KnownElements::new_with_db(Path::new("./elements.json")).unwrap()
+	KnownElements::new_with_db(Path::new("./elements.toml")).unwrap()
 }
 
 pub fn sample_tank() -> Tank {
-	Tank::new_from_json(
-		r#"{
-		"volume": 200
-		}"#,
+	Tank::new_from_toml(
+		r#"
+		volume = 200
+		"#,
 	)
 	.unwrap()
 }
