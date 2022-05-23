@@ -3,6 +3,7 @@ use clap::Parser;
 use crossterm::style::Stylize;
 use dialoguer::Input;
 use std::{fs, path::PathBuf};
+use itertools::Itertools;
 
 use crate::{concentration::DiluteMethod, fertilizers_db::FertilizersDb, traits::Fertilizer};
 
@@ -75,6 +76,9 @@ pub(crate) struct Opts {
 	/// What type of calculation is desired
 	#[clap(long, arg_enum, default_value = "dose")]
 	calc: CalculationType,
+	/// List the available fertilizers loaded from the database and exit
+	#[clap(long, short = 'l')]
+	list: bool,
 }
 
 fn main() -> Result<()> {
@@ -96,6 +100,14 @@ fn main() -> Result<()> {
 	} else {
 		let known_fertilizers_toml = include_str!("../fertilizers.toml");
 		fertilizers_db.load_db(known_fertilizers_toml, &known_elements)?;
+	}
+
+	if opts.list {
+		for fert_name in fertilizers_db.known_fertilizers.keys().sorted() {
+			println!("{}", fert_name);
+		}
+
+		return Ok(());
 	}
 
 	let fertilizer: Box<dyn Fertilizer> = match opts.fertilizer {
