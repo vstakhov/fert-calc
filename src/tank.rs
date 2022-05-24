@@ -25,7 +25,7 @@ impl Tank {
 	fn length_from_string_as_dm(s: &str) -> Result<f64> {
 		let s = s.trim();
 		let last_char = s.chars().last().ok_or_else(|| anyhow!("empty dimension"))?;
-		if last_char.is_digit(10) || last_char == '.' {
+		if last_char.is_ascii_digit() || last_char == '.' {
 			// We assume centimeters and convert them to decimeters to get liters after multiplication
 			let dim = s.parse::<f64>()? / 10.0;
 			Ok(dim)

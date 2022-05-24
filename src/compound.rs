@@ -122,7 +122,7 @@ impl Compound {
 			} else if chr.is_lowercase() {
 				// Lowercase is always end of the element name
 				acc.push(chr);
-			} else if chr.is_digit(10) {
+			} else if chr.is_ascii_digit() {
 				if last_subcompound.is_none() && !acc.is_empty() {
 					// Process leftover
 					let elt = new_compound.process_acc(acc.as_str(), 1, known_elts)?;
