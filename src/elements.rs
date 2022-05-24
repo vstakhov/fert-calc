@@ -54,16 +54,16 @@ impl Eq for Element {}
 
 impl PartialOrd for Element {
 	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-		Some(self.cmp(&other))
+		Some(self.cmp(other))
 	}
 }
 
 impl Ord for Element {
 	fn cmp(&self, other: &Self) -> Ordering {
 		if self.priority() == other.priority() {
-			self.name.cmp(&&other.name)
+			self.name.cmp(&other.name)
 		} else {
-			self.priority().cmp(&&other.priority()).reverse()
+			self.priority().cmp(&other.priority()).reverse()
 		}
 	}
 }
@@ -83,7 +83,7 @@ impl KnownElements {
 	}
 
 	pub fn new_with_string(input: &str) -> Result<Self> {
-		let elements: HashMap<String, ElementData> = toml::from_str(&input)?;
+		let elements: HashMap<String, ElementData> = toml::from_str(input)?;
 		let elements = elements
 			.into_iter()
 			.map(|(name, elt_data)| {
@@ -106,12 +106,14 @@ impl KnownElements {
 
 impl Element {
 	/// Returns element rate to alias rate where an alias parsed from a string
-	pub fn from_alias_rate(&self, alias: &str, known_elts: &KnownElements) -> Result<f64> {
+	pub fn element_from_alias_rate(&self, alias: &str, known_elts: &KnownElements) -> Result<f64> {
 		let molecule = Compound::new(alias, known_elts)?;
-		molecule.element_fraction(self).ok_or(anyhow!("invalid alias: {}", alias))
+		molecule
+			.element_fraction(self)
+			.ok_or_else(|| anyhow!("invalid alias: {}", alias))
 	}
 	/// Returns alias rate to specific element rate where an alias is parsed from a string
-	pub fn to_alias_rate(&self, alias: &str, known_elts: &KnownElements) -> Result<f64> {
-		self.from_alias_rate(alias, known_elts).map(|rate| 1.0 / rate)
+	pub fn element_to_alias_rate(&self, alias: &str, known_elts: &KnownElements) -> Result<f64> {
+		self.element_from_alias_rate(alias, known_elts).map(|rate| 1.0 / rate)
 	}
 }

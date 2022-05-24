@@ -60,13 +60,11 @@ impl Compound {
 					*self.elements.entry(elt.clone()).or_default() += sub_cnt * cnt;
 				});
 				Ok(true)
+			} else if let Some(last_elt) = last_element {
+				*self.elements.entry(last_elt.clone()).or_default() += cnt - 1;
+				Ok(true)
 			} else {
-				if let Some(last_elt) = last_element {
-					*self.elements.entry(last_elt.clone()).or_default() += cnt - 1;
-					Ok(true)
-				} else {
-					Err(anyhow!("digit without element found"))
-				}
+				Err(anyhow!("digit without element found"))
 			}
 		} else if let Some(subcompound) = last_subcompound {
 			subcompound.elements.iter().for_each(|(elt, sub_cnt)| {
@@ -106,50 +104,48 @@ impl Compound {
 					ebraces = 0;
 					acc.clear();
 				}
-			} else {
-				if chr.is_ascii_uppercase() {
-					if new_compound.process_trail(last_cnt, last_element, &last_subcompound)? {
-						last_element = None;
-						last_cnt = None;
-						last_subcompound = None;
-					}
-
-					// Previous element
-					if !acc.is_empty() {
-						let elt = new_compound.process_acc(acc.as_str(), 1, known_elts)?;
-						last_element = Some(elt);
-						acc.clear();
-					}
-
-					acc.push(chr);
-				} else if chr.is_lowercase() {
-					// Lowercase is always end of the element name
-					acc.push(chr);
-				} else if chr.is_digit(10) {
-					if last_subcompound.is_none() && !acc.is_empty() {
-						// Process leftover
-						let elt = new_compound.process_acc(acc.as_str(), 1, known_elts)?;
-						last_element = Some(elt);
-						acc.clear();
-					}
-					let cnt = chr.to_digit(10).unwrap();
-
-					last_cnt = match last_cnt {
-						Some(x) => Some(x * 10 + cnt),
-						_ => Some(cnt),
-					};
-				} else if chr == '(' {
-					if !new_compound.process_trail(last_cnt, last_element, &last_subcompound)? && !acc.is_empty() {
-						new_compound.process_acc(acc.as_str(), 1, known_elts)?;
-					}
-					acc.clear();
+			} else if chr.is_ascii_uppercase() {
+				if new_compound.process_trail(last_cnt, last_element, &last_subcompound)? {
 					last_element = None;
 					last_cnt = None;
 					last_subcompound = None;
-					obraces += 1;
-				} else {
-					// Ignore garbage stuff
 				}
+
+				// Previous element
+				if !acc.is_empty() {
+					let elt = new_compound.process_acc(acc.as_str(), 1, known_elts)?;
+					last_element = Some(elt);
+					acc.clear();
+				}
+
+				acc.push(chr);
+			} else if chr.is_lowercase() {
+				// Lowercase is always end of the element name
+				acc.push(chr);
+			} else if chr.is_digit(10) {
+				if last_subcompound.is_none() && !acc.is_empty() {
+					// Process leftover
+					let elt = new_compound.process_acc(acc.as_str(), 1, known_elts)?;
+					last_element = Some(elt);
+					acc.clear();
+				}
+				let cnt = chr.to_digit(10).unwrap();
+
+				last_cnt = match last_cnt {
+					Some(x) => Some(x * 10 + cnt),
+					_ => Some(cnt),
+				};
+			} else if chr == '(' {
+				if !new_compound.process_trail(last_cnt, last_element, &last_subcompound)? && !acc.is_empty() {
+					new_compound.process_acc(acc.as_str(), 1, known_elts)?;
+				}
+				acc.clear();
+				last_element = None;
+				last_cnt = None;
+				last_subcompound = None;
+				obraces += 1;
+			} else {
+				// Ignore garbage stuff
 			}
 		}
 
@@ -183,10 +179,9 @@ impl Compound {
 	pub fn element_fraction(&self, element: &Element) -> Option<f64> {
 		let molar_mass = self.molar_mass();
 
-		match self.elements.get(element) {
-			Some(elt_cnt) => Some(element.molar_mass * (*elt_cnt as f64) / molar_mass),
-			_ => None,
-		}
+		self.elements
+			.get(element)
+			.map(|elt_cnt| element.molar_mass * (*elt_cnt as f64) / molar_mass)
 	}
 }
 
@@ -197,7 +192,7 @@ impl Fertilizer for Compound {
 
 		self.elements
 			.iter()
-			.filter(|(element, _)| return !element.is_insignificant())
+			.filter(|(element, _)| !element.is_insignificant())
 			.map(|(element, cnt)| {
 				let percentage = element.molar_mass * (*cnt as f64) / molar_mass;
 
@@ -206,7 +201,8 @@ impl Fertilizer for Compound {
 						.iter()
 						.map(|alias| ElementConcentrationAlias {
 							element_alias: alias.clone(),
-							concentration: percentage * element.to_alias_rate(alias.as_str(), known_elts).unwrap(),
+							concentration: percentage *
+								element.element_to_alias_rate(alias.as_str(), known_elts).unwrap(),
 						})
 						.collect::<Vec<_>>()
 				});

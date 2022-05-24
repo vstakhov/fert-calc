@@ -51,37 +51,37 @@ fn is_sane_elements(known_elements: &KnownElements) -> Result<()> {
 	let _n = known_elements
 		.elements
 		.get("N")
-		.ok_or(anyhow!("missing nitrogen in known elements"))?;
+		.ok_or_else(|| anyhow!("missing nitrogen in known elements"))?;
 	let p = known_elements
 		.elements
 		.get("P")
-		.ok_or(anyhow!("missing phosphorus in known elements"))?;
+		.ok_or_else(|| anyhow!("missing phosphorus in known elements"))?;
 	p.aliases
 		.as_ref()
-		.ok_or(anyhow!("missing aliases for P"))?
+		.ok_or_else(|| anyhow!("missing aliases for P"))?
 		.iter()
 		.position(|e| e == "P2O5")
-		.ok_or(anyhow!("missing P2O5 alias in known elements"))?;
+		.ok_or_else(|| anyhow!("missing P2O5 alias in known elements"))?;
 	let k = known_elements
 		.elements
 		.get("K")
-		.ok_or(anyhow!("missing potassium in known elements"))?;
+		.ok_or_else(|| anyhow!("missing potassium in known elements"))?;
 	k.aliases
 		.as_ref()
-		.ok_or(anyhow!("missing aliases for K"))?
+		.ok_or_else(|| anyhow!("missing aliases for K"))?
 		.iter()
 		.position(|e| e == "K2O")
-		.ok_or(anyhow!("missing K2O alias in known elements"))?;
+		.ok_or_else(|| anyhow!("missing K2O alias in known elements"))?;
 	let mg = known_elements
 		.elements
 		.get("Mg")
-		.ok_or(anyhow!("missing magnesium in known elements"))?;
+		.ok_or_else(|| anyhow!("missing magnesium in known elements"))?;
 	mg.aliases
 		.as_ref()
-		.ok_or(anyhow!("missing aliases for Mg"))?
+		.ok_or_else(|| anyhow!("missing aliases for Mg"))?
 		.iter()
 		.position(|e| e == "MgO")
-		.ok_or(anyhow!("missing MgO alias in known elements"))?;
+		.ok_or_else(|| anyhow!("missing MgO alias in known elements"))?;
 	Ok(())
 }
 
@@ -108,18 +108,24 @@ impl MixedFertilizer {
 		}
 		if macros.p2o5_percentage > f64::EPSILON {
 			let p = known_elements.elements.get("P").unwrap();
-			self.elements_composition
-				.insert(p.clone(), p.from_alias_rate("P2O5", known_elements).unwrap() * macros.p2o5_percentage / 100.0);
+			self.elements_composition.insert(
+				p.clone(),
+				p.element_from_alias_rate("P2O5", known_elements).unwrap() * macros.p2o5_percentage / 100.0,
+			);
 		}
 		if macros.k2o_percentage > f64::EPSILON {
 			let k = known_elements.elements.get("K").unwrap();
-			self.elements_composition
-				.insert(k.clone(), k.from_alias_rate("K2O", known_elements).unwrap() * macros.k2o_percentage / 100.0);
+			self.elements_composition.insert(
+				k.clone(),
+				k.element_from_alias_rate("K2O", known_elements).unwrap() * macros.k2o_percentage / 100.0,
+			);
 		}
 		if macros.mgo_percentage > f64::EPSILON {
 			let mg = known_elements.elements.get("Mg").unwrap();
-			self.elements_composition
-				.insert(mg.clone(), mg.from_alias_rate("MgO", known_elements).unwrap() * macros.mgo_percentage / 100.0);
+			self.elements_composition.insert(
+				mg.clone(),
+				mg.element_from_alias_rate("MgO", known_elements).unwrap() * macros.mgo_percentage / 100.0,
+			);
 		}
 	}
 	/// Parses a mixed fertilizer from stdin
@@ -137,9 +143,8 @@ impl MixedFertilizer {
 		let input: String = Input::new().with_prompt("Input total MgO in percents").interact_text()?;
 		macros.mgo_percentage = input.parse::<f64>()?;
 
-		let mut res: Self = Default::default();
+		let mut res = Self { name: macros.name_from_npk(), ..Default::default() };
 
-		res.name = macros.name_from_npk();
 		res.push_macro_elements(&macros, known_elements);
 
 		Ok(res)
@@ -150,9 +155,8 @@ impl MixedFertilizer {
 	pub fn new_from_npk(macros: &MacroElements, known_elements: &KnownElements) -> Result<Self> {
 		is_sane_elements(known_elements)?;
 
-		let mut res: Self = Default::default();
-		res.name = macros.name_from_npk();
-		res.push_macro_elements(&macros, known_elements);
+		let mut res = Self { name: macros.name_from_npk(), ..Default::default() };
+		res.push_macro_elements(macros, known_elements);
 
 		Ok(res)
 	}
@@ -172,12 +176,11 @@ impl MixedFertilizer {
 			.as_table()
 			.unwrap()
 			.get("compounds")
-			.ok_or(anyhow!("no `compounds` object in a mix"))?
+			.ok_or_else(|| anyhow!("no `compounds` object in a mix"))?
 			.as_table()
-			.ok_or(anyhow!("expect compounds to be an object"))?;
+			.ok_or_else(|| anyhow!("expect compounds to be an object"))?;
 
-		let mut res: Self = Default::default();
-		res.name = name.to_owned();
+		let mut res = Self { name: name.to_owned(), ..Default::default() };
 
 		// Ineffective, but who cares
 		if !compounds
@@ -218,14 +221,15 @@ impl Fertilizer for MixedFertilizer {
 	fn components_percentage(&self, known_elts: &KnownElements) -> Vec<ElementsConcentrationsWithAliases> {
 		self.elements_composition
 			.iter()
-			.filter(|(element, _)| return !element.is_insignificant())
+			.filter(|(element, _)| !element.is_insignificant())
 			.map(|(element, fraction)| {
 				let aliases: Vec<ElementConcentrationAlias> = element.aliases.as_ref().map_or(Vec::new(), |aliases| {
 					aliases
 						.iter()
 						.map(|alias| ElementConcentrationAlias {
 							element_alias: alias.clone(),
-							concentration: *fraction * element.to_alias_rate(alias.as_str(), known_elts).unwrap(),
+							concentration: *fraction *
+								element.element_to_alias_rate(alias.as_str(), known_elts).unwrap(),
 						})
 						.collect::<Vec<_>>()
 				});
@@ -288,7 +292,6 @@ mod tests {
 				p2o5_percentage: 9.0,
 				k2o_percentage: 30.0,
 				mgo_percentage: 2.5,
-				..Default::default()
 			},
 			&known_elements,
 		)

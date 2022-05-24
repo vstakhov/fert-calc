@@ -24,13 +24,15 @@ pub struct Tank {
 impl Tank {
 	fn length_from_string_as_dm(s: &str) -> Result<f64> {
 		let s = s.trim();
-		let last_char = s.chars().last().ok_or(anyhow!("empty dimension"))?;
+		let last_char = s.chars().last().ok_or_else(|| anyhow!("empty dimension"))?;
 		if last_char.is_digit(10) || last_char == '.' {
 			// We assume centimeters and convert them to decimeters to get liters after multiplication
 			let dim = s.parse::<f64>()? / 10.0;
 			Ok(dim)
 		} else {
-			let dim = Length::new_string(s).ok_or(anyhow!("invalid dimension: {}", s))?.to(Decimeter);
+			let dim = Length::new_string(s)
+				.ok_or_else(|| anyhow!("invalid dimension: {}", s))?
+				.to(Decimeter);
 			Ok(dim.value)
 		}
 	}
@@ -55,7 +57,7 @@ impl Tank {
 
 	/// Load tank data from toml
 	pub fn new_from_toml(input: &str) -> Result<Self> {
-		let mut tank: Tank = toml::from_str(&input)?;
+		let mut tank: Tank = toml::from_str(input)?;
 		if tank.volume.is_none() {
 			if let Some(lin) = &tank.linear {
 				tank.volume = Some(lin.length * lin.height * lin.width);

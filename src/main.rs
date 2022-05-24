@@ -2,8 +2,8 @@ use anyhow::Result;
 use clap::Parser;
 use crossterm::style::Stylize;
 use dialoguer::Input;
-use std::{fs, path::PathBuf};
 use itertools::Itertools;
+use std::{fs, path::PathBuf};
 
 use crate::{concentration::DiluteMethod, fertilizers_db::FertilizersDb, traits::Fertilizer};
 
@@ -107,7 +107,7 @@ fn main() -> Result<()> {
 			println!("{}", fert_name);
 		}
 
-		return Ok(());
+		return Ok(())
 	}
 
 	let fertilizer: Box<dyn Fertilizer> = match opts.fertilizer {
@@ -120,7 +120,7 @@ fn main() -> Result<()> {
 
 			match maybe_known_fertilizer {
 				Some(fertilizer_box) => {
-					println!("Fertilizer: {}", fertilizer_box.name().clone().bold());
+					println!("Fertilizer: {}", fertilizer_box.name().bold());
 					println!("Compounds by elements");
 					let components = fertilizer_box.components_percentage(&known_elements);
 
@@ -131,7 +131,7 @@ fn main() -> Result<()> {
 				},
 				None => {
 					let compound = compound::Compound::new(input.as_str(), &known_elements)?;
-					println!("Compound: {}", compound.name().clone().bold());
+					println!("Compound: {}", compound.name().bold());
 					println!("Molar mass: {}", compound.molar_mass().to_string().bold());
 					println!("Compounds by elements");
 					let components = compound.components_percentage(&known_elements);
@@ -145,7 +145,7 @@ fn main() -> Result<()> {
 		},
 		FertilizerType::Compound => {
 			let compound = compound::Compound::new_from_stdin(&known_elements)?;
-			println!("Compound: {}", compound.name().clone().bold());
+			println!("Compound: {}", compound.name().bold());
 			println!("Molar mass: {}", compound.molar_mass().to_string().bold());
 			println!("Compounds by elements");
 			let components = compound.components_percentage(&known_elements);
@@ -157,7 +157,7 @@ fn main() -> Result<()> {
 		},
 		FertilizerType::Mix => {
 			let mix = mix::MixedFertilizer::new_from_stdin(&known_elements)?;
-			println!("Mix: {}", mix.name().clone().bold());
+			println!("Mix: {}", mix.name().bold());
 			println!("Compounds by elements");
 			let components = mix.components_percentage(&known_elements);
 
@@ -171,24 +171,22 @@ fn main() -> Result<()> {
 	let tank = if let Some(tank_toml) = &opts.tank_toml {
 		let data = fs::read_to_string(tank_toml.as_path())?;
 		tank::Tank::new_from_toml(data.as_str())?
+	} else if opts.tank_input == TankInputMode::Linear {
+		tank::Tank::new_from_stdin_linear()?
 	} else {
-		if opts.tank_input == TankInputMode::Linear {
-			tank::Tank::new_from_stdin_linear()?
-		} else {
-			tank::Tank::new_from_stdin_volume()?
-		}
+		tank::Tank::new_from_stdin_volume()?
 	};
 
 	println!("{:?}", &tank);
 
 	let dosages = match opts.dosing_method {
 		DosingMethod::Dry => concentration::DryDosing::new_from_stdin(opts.calc.into(), &known_elements)?.dilute(
-			&fertilizer,
+			&*fertilizer,
 			&known_elements,
 			&tank,
 		)?,
 		DosingMethod::Solution => concentration::SolutionDosing::new_from_stdin(opts.calc.into(), &known_elements)?
-			.dilute(&fertilizer, &known_elements, &tank)?,
+			.dilute(&*fertilizer, &known_elements, &tank)?,
 	};
 
 	if opts.calc == CalculationType::Target {

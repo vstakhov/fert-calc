@@ -31,7 +31,7 @@ impl FertilizersDb {
 					.get("formula")
 					.unwrap()
 					.as_str()
-					.ok_or(anyhow!("formula must be string in {}", name))?;
+					.ok_or_else(|| anyhow!("formula must be string in {}", name))?;
 				let compound = Box::new(Compound::new(formula, known_elts)?);
 				self.known_fertilizers.insert(name.clone(), compound as Box<dyn Fertilizer>);
 			}

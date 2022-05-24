@@ -76,13 +76,13 @@ impl Debug for ElementsDosesWithAliases {
 
 impl PartialOrd for ElementsConcentrationsWithAliases {
 	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-		Some(self.element.cmp(&&other.element))
+		Some(self.element.cmp(&other.element))
 	}
 }
 
 impl Ord for ElementsConcentrationsWithAliases {
 	fn cmp(&self, other: &Self) -> Ordering {
-		self.element.cmp(&&other.element)
+		self.element.cmp(&other.element)
 	}
 }
 
@@ -96,13 +96,13 @@ impl Eq for ElementsConcentrationsWithAliases {}
 
 impl PartialOrd for ElementsDosesWithAliases {
 	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-		Some(self.element.cmp(&&other.element))
+		Some(self.element.cmp(&other.element))
 	}
 }
 
 impl Ord for ElementsDosesWithAliases {
 	fn cmp(&self, other: &Self) -> Ordering {
-		self.element.cmp(&&other.element)
+		self.element.cmp(&other.element)
 	}
 }
 
@@ -130,12 +130,7 @@ pub trait DiluteMethod {
 	where
 		Self: Sized;
 	/// Dilute fertilizer in a specific tank using known dilute method
-	fn dilute(
-		&self,
-		fertilizer: &Box<dyn Fertilizer>,
-		known_elements: &KnownElements,
-		tank: &Tank,
-	) -> Result<DiluteResult>;
+	fn dilute(&self, fertilizer: &dyn Fertilizer, known_elements: &KnownElements, tank: &Tank) -> Result<DiluteResult>;
 }
 
 fn get_element_dose_target(known_elements: &KnownElements) -> Result<(String, f64)> {
@@ -201,12 +196,7 @@ impl DiluteMethod for DryDosing {
 		Ok(res)
 	}
 
-	fn dilute(
-		&self,
-		fertilizer: &Box<dyn Fertilizer>,
-		known_elements: &KnownElements,
-		tank: &Tank,
-	) -> Result<DiluteResult> {
+	fn dilute(&self, fertilizer: &dyn Fertilizer, known_elements: &KnownElements, tank: &Tank) -> Result<DiluteResult> {
 		let concentrations = fertilizer.components_percentage(known_elements);
 		let mult = match self.what {
 			DiluteCalcType::ResultOfDose => self.dilute_input * 1000.0 / tank.effective_volume() as f64,
@@ -215,14 +205,14 @@ impl DiluteMethod for DryDosing {
 				let target_elt = self
 					.target_element
 					.as_ref()
-					.ok_or(anyhow!("no target element defined"))?
+					.ok_or_else(|| anyhow!("no target element defined"))?
 					.as_str();
 				let fert_elt = concentrations
 					.get(
 						concentrations
 							.iter()
 							.position(|elt| elt.element.name == target_elt)
-							.ok_or(anyhow!("target element {} is not in the fertilizer", target_elt))?,
+							.ok_or_else(|| anyhow!("target element {} is not in the fertilizer", target_elt))?,
 					)
 					.unwrap();
 				self.dilute_input / fert_elt.concentration
@@ -275,12 +265,7 @@ impl DiluteMethod for SolutionDosing {
 		Ok(res)
 	}
 
-	fn dilute(
-		&self,
-		fertilizer: &Box<dyn Fertilizer>,
-		known_elements: &KnownElements,
-		tank: &Tank,
-	) -> Result<DiluteResult> {
+	fn dilute(&self, fertilizer: &dyn Fertilizer, known_elements: &KnownElements, tank: &Tank) -> Result<DiluteResult> {
 		let concentrations = fertilizer.components_percentage(known_elements);
 		let dose = match self.what {
 			DiluteCalcType::ResultOfDose => self.dose,
@@ -289,14 +274,14 @@ impl DiluteMethod for SolutionDosing {
 				let target_elt = self
 					.target_element
 					.as_ref()
-					.ok_or(anyhow!("no target element defined"))?
+					.ok_or_else(|| anyhow!("no target element defined"))?
 					.as_str();
 				let fert_elt = concentrations
 					.get(
 						concentrations
 							.iter()
 							.position(|elt| elt.element.name == target_elt)
-							.ok_or(anyhow!("target element {} is not in the fertilizer", target_elt))?,
+							.ok_or_else(|| anyhow!("target element {} is not in the fertilizer", target_elt))?,
 					)
 					.unwrap();
 				self.dose * tank.effective_volume() as f64 / fert_elt.concentration * self.container_volume /
@@ -321,7 +306,7 @@ mod tests {
 		let compound: Box<dyn Fertilizer> = Box::new(Compound::new("KNO3", &known_elts).unwrap());
 		let dosing =
 			Box::new(DryDosing { dilute_input: 1.0, what: DiluteCalcType::ResultOfDose, ..Default::default() });
-		let results = dosing.dilute(&compound, &known_elts, &tank).unwrap();
+		let results = dosing.dilute(&*compound, &known_elts, &tank).unwrap();
 		assert!(!results.elements_dose.is_empty());
 		assert_eq!(results.elements_dose[0].element.name.as_str(), "N");
 		assert_delta_eq!(results.elements_dose[0].dose, 0.815, MOLAR_MASS_EPSILON);
@@ -341,7 +326,7 @@ mod tests {
 			what: DiluteCalcType::ResultOfDose,
 			..Default::default()
 		});
-		let results = dosing.dilute(&compound, &known_elts, &tank).unwrap();
+		let results = dosing.dilute(&*compound, &known_elts, &tank).unwrap();
 		assert!(!results.elements_dose.is_empty());
 		assert_eq!(results.elements_dose[0].element.name.as_str(), "N");
 		assert_delta_eq!(results.elements_dose[0].dose, 0.815, MOLAR_MASS_EPSILON);
