@@ -2,8 +2,9 @@
 authors = ["Vsevolod Stakhov <vsevolod@rspamd.com>"]
 name = "fert-calc"
 categories = ["command-line-utilities"]
-description = "a simple calculator for DIY aquarium fertilisers"
+description = "A simple calculator for DIY aquarium fertilisers"
 version = "0.1.0"
+keywords = ["cli", "aquarium", "fertilizers"]
 license = "Apache-2.0"
 edition = "2021"
 readme = "README.md"

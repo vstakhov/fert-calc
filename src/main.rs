@@ -72,7 +72,7 @@ pub(crate) struct Opts {
 	fertilizer: FertilizerType,
 	/// Path to fertilizers database in toml format instead of the embedded database
 	#[clap(long, parse(from_os_str))]
-	fertilizers_db: Option<PathBuf>,
+	database: Vec<PathBuf>,
 	/// What type of calculation is desired
 	#[clap(long, arg_enum, default_value = "dose")]
 	calc: CalculationType,
@@ -94,12 +94,12 @@ fn main() -> Result<()> {
 
 	let mut fertilizers_db: FertilizersDb = Default::default();
 
-	if let Some(fertilizers_db_path) = opts.fertilizers_db {
-		let data = fs::read_to_string(fertilizers_db_path.as_path())?;
+	let known_fertilizers_toml = include_str!("../fertilizers.toml");
+	fertilizers_db.load_db(known_fertilizers_toml, &known_elements)?;
+
+	for extra_db in opts.database.iter() {
+		let data = fs::read_to_string(extra_db.as_path())?;
 		fertilizers_db.load_db(data.as_str(), &known_elements)?;
-	} else {
-		let known_fertilizers_toml = include_str!("../fertilizers.toml");
-		fertilizers_db.load_db(known_fertilizers_toml, &known_elements)?;
 	}
 
 	if opts.list {
