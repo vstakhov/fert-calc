@@ -173,7 +173,7 @@ fn main() -> Result<()> {
 
 	let tank = if let Some(tank_toml) = &opts.tank_toml {
 		let data = fs::read_to_string(tank_toml.as_path())?;
-		tank::Tank::new_from_toml(data.as_str(), opts.absolute)?
+		tank::Tank::new_from_toml(data.as_str())?
 	} else if opts.tank_input == TankInputMode::Linear {
 		tank::Tank::new_from_stdin_linear(opts.absolute)?
 	} else {

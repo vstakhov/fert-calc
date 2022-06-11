@@ -61,7 +61,7 @@ impl Tank {
 	}
 
 	/// Load tank data from toml
-	pub fn new_from_toml(input: &str, _absolute: bool) -> Result<Self> {
+	pub fn new_from_toml(input: &str) -> Result<Self> {
 		let mut tank: Tank = toml::from_str(input)?;
 		if tank.volume.is_none() {
 			if let Some(lin) = &tank.linear {
@@ -98,6 +98,7 @@ mod tests {
 
 	fn sample_tank_linear() -> &'static str {
 		r#"
+		absolute = false
 		[linear]
 		  height = 5.0
 		  width = 5.0
@@ -107,6 +108,7 @@ mod tests {
 	fn sample_tank_volume() -> &'static str {
 		r#"
 		volume = 200
+		absolute = false
 		"#
 	}
 

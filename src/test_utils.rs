@@ -25,6 +25,7 @@ pub fn sample_tank() -> Tank {
 	Tank::new_from_toml(
 		r#"
 		volume = 200
+		absolute = false
 		"#,
 	)
 	.unwrap()
