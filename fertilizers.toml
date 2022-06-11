@@ -29,6 +29,19 @@ Mn = 0.67
 Mo = 0.04
 Zn = 0.49
 
+["Solufeed Hanging Basket".compounds]
+N = 6
+P2O5 = 2.3
+K2O = 8
+MgO = 3
+B = 0.016
+Cu = 0.004
+Fe = 0.08
+Mn = 0.04
+Mo = 0.0004
+Zn = 0.04
+
+
 ["Solufeed TEC".compounds]
 B = 0.92
 Cu = 0.23
