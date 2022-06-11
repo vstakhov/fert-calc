@@ -46,7 +46,11 @@ impl Tank {
 		let input: String = Input::new().with_prompt("Tank height (e.g. 90cm): ").interact_text()?;
 		let height = Tank::length_from_string_as_dm(input.as_str())?;
 
-		Ok(Self { linear: Some(LinearDimensions { height, length, width }), volume: Some(length * height * width), absolute })
+		Ok(Self {
+			linear: Some(LinearDimensions { height, length, width }),
+			volume: Some(length * height * width),
+			absolute,
+		})
 	}
 
 	/// Load tank from
