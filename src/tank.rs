@@ -19,6 +19,7 @@ struct LinearDimensions {
 pub struct Tank {
 	linear: Option<LinearDimensions>,
 	volume: Option<f64>,
+	absolute: bool,
 }
 
 impl Tank {
@@ -37,7 +38,7 @@ impl Tank {
 		}
 	}
 	/// Interactively fill tank dimensions
-	pub fn new_from_stdin_linear() -> Result<Self> {
+	pub fn new_from_stdin_linear(absolute: bool) -> Result<Self> {
 		let input: String = Input::new().with_prompt("Tank length (e.g. 90cm): ").interact_text()?;
 		let length = Tank::length_from_string_as_dm(input.as_str())?;
 		let input: String = Input::new().with_prompt("Tank width (e.g. 90cm): ").interact_text()?;
@@ -45,18 +46,18 @@ impl Tank {
 		let input: String = Input::new().with_prompt("Tank height (e.g. 90cm): ").interact_text()?;
 		let height = Tank::length_from_string_as_dm(input.as_str())?;
 
-		Ok(Self { linear: Some(LinearDimensions { height, length, width }), volume: Some(length * height * width) })
+		Ok(Self { linear: Some(LinearDimensions { height, length, width }), volume: Some(length * height * width), absolute })
 	}
 
 	/// Load tank from
-	pub fn new_from_stdin_volume() -> Result<Self> {
+	pub fn new_from_stdin_volume(absolute: bool) -> Result<Self> {
 		let input: String = Input::new().with_prompt("Tank volume in liters: ").interact_text()?;
 		let volume = input.parse::<f64>()?;
-		Ok(Self { linear: None, volume: Some(volume) })
+		Ok(Self { linear: None, volume: Some(volume), absolute })
 	}
 
 	/// Load tank data from toml
-	pub fn new_from_toml(input: &str) -> Result<Self> {
+	pub fn new_from_toml(input: &str, _absolute: bool) -> Result<Self> {
 		let mut tank: Tank = toml::from_str(input)?;
 		if tank.volume.is_none() {
 			if let Some(lin) = &tank.linear {
@@ -70,7 +71,8 @@ impl Tank {
 
 	/// Returns a real volume of the tank (approximately volume * 0.9)
 	pub fn effective_volume(&self) -> usize {
-		self.volume.map_or(0, |vol| (vol * REAL_VOLUME_MULT) as usize)
+		let mult = if self.absolute { 1.0 } else { REAL_VOLUME_MULT };
+		self.volume.map_or(0, |vol| (vol * mult) as usize)
 	}
 
 	pub fn metric_volume(&self) -> usize {

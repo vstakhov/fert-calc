@@ -79,6 +79,9 @@ pub(crate) struct Opts {
 	/// List the available fertilizers loaded from the database and exit
 	#[clap(long, short = 'l')]
 	list: bool,
+	/// Use absolute volume without corrections
+	#[clap(long, short = 'a')]
+	absolute: bool,
 }
 
 fn main() -> Result<()> {
@@ -170,11 +173,11 @@ fn main() -> Result<()> {
 
 	let tank = if let Some(tank_toml) = &opts.tank_toml {
 		let data = fs::read_to_string(tank_toml.as_path())?;
-		tank::Tank::new_from_toml(data.as_str())?
+		tank::Tank::new_from_toml(data.as_str(), opts.absolute)?
 	} else if opts.tank_input == TankInputMode::Linear {
-		tank::Tank::new_from_stdin_linear()?
+		tank::Tank::new_from_stdin_linear(opts.absolute)?
 	} else {
-		tank::Tank::new_from_stdin_volume()?
+		tank::Tank::new_from_stdin_volume(opts.absolute)?
 	};
 
 	println!("{:?}", &tank);
