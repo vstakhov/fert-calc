@@ -159,13 +159,15 @@ fn main() -> Result<()> {
 		.edit_mode(EditMode::Vi)
 		.output_stream(OutputStreamType::Stdout)
 		.build();
-	let mut editor = rustyline::Editor::with_config(config);
-	editor.set_helper(Some(FertInputHelper::new(&fertilizers_db)));
+	let mut fert_editor = rustyline::Editor::with_config(config.clone());
+	fert_editor.set_helper(Some(FertInputHelper::new(&fertilizers_db)));
+
+	let mut generic_editor = rustyline::Editor::<()>::with_config(config.clone());
 
 	let fertilizer: Box<dyn Fertilizer> = match opts.fertilizer {
 		FertilizerType::Any => {
 			let input: String =
-				editor.readline("Input a fertilizer (e.g. `Miracle Gro`) or a compound (e.g. KNO3): ")?;
+				fert_editor.readline("Input a fertilizer (e.g. `Miracle Gro`) or a compound (e.g. KNO3): ")?;
 
 			let maybe_known_fertilizer = fertilizers_db.known_fertilizers.get(input.as_str());
 
@@ -195,7 +197,7 @@ fn main() -> Result<()> {
 			}
 		},
 		FertilizerType::Compound => {
-			let compound = compound::Compound::new_from_stdin(&known_elements, &mut editor)?;
+			let compound = compound::Compound::new_from_stdin(&known_elements, &mut generic_editor)?;
 			println!("Compound: {}", compound.name().bold());
 			println!("Molar mass: {}", compound.molar_mass().to_string().bold());
 			println!("Compounds by elements");
@@ -207,7 +209,7 @@ fn main() -> Result<()> {
 			Box::new(compound)
 		},
 		FertilizerType::Mix => {
-			let mix = mix::MixedFertilizer::new_from_stdin(&known_elements, &mut editor)?;
+			let mix = mix::MixedFertilizer::new_from_stdin(&known_elements, &mut fert_editor)?;
 			println!("Mix: {}", mix.name().bold());
 			println!("Compounds by elements");
 			let components = mix.components_percentage(&known_elements);
@@ -223,23 +225,22 @@ fn main() -> Result<()> {
 		let data = fs::read_to_string(tank_toml.as_path())?;
 		tank::Tank::new_from_toml(data.as_str())?
 	} else if opts.tank_input == TankInputMode::Linear {
-		tank::Tank::new_from_stdin_linear(opts.absolute, &mut editor)?
+		tank::Tank::new_from_stdin_linear(opts.absolute, &mut generic_editor)?
 	} else {
-		tank::Tank::new_from_stdin_volume(opts.absolute, &mut editor)?
+		tank::Tank::new_from_stdin_volume(opts.absolute, &mut generic_editor)?
 	};
 
 	println!("{:?}", &tank);
 
-	let dosages = match opts.dosing_method {
-		DosingMethod::Dry => concentration::DryDosing::new_from_stdin(opts.calc.into(), &known_elements, &mut editor)?
-			.dilute(&*fertilizer, &known_elements, &tank)?,
-		DosingMethod::Solution => concentration::SolutionDosing::new_from_stdin(
-			opts.calc.into(),
-			&known_elements,
-			&mut editor,
-		)?
-		.dilute(&*fertilizer, &known_elements, &tank)?,
-	};
+	let dosages =
+		match opts.dosing_method {
+			DosingMethod::Dry =>
+				concentration::DryDosing::new_from_stdin(opts.calc.into(), &known_elements, &mut generic_editor)?
+					.dilute(&*fertilizer, &known_elements, &tank)?,
+			DosingMethod::Solution =>
+				concentration::SolutionDosing::new_from_stdin(opts.calc.into(), &known_elements, &mut generic_editor)?
+					.dilute(&*fertilizer, &known_elements, &tank)?,
+		};
 
 	if opts.calc == CalculationType::Target {
 		println!("You need to add {:.3} grams of fertilizer to reach your target", dosages.compound_dose);
