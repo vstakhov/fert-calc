@@ -1,8 +1,14 @@
 use anyhow::Result;
 use clap::Parser;
 use crossterm::style::Stylize;
-use dialoguer::Input;
 use itertools::Itertools;
+use rustyline::{
+	completion::{Completer, Pair},
+	highlight::Highlighter,
+	hint::Hinter,
+	validate::Validator,
+	CompletionType, Context, EditMode, Helper, OutputStreamType,
+};
 use std::{fs, path::PathBuf};
 
 use crate::{concentration::DiluteMethod, fertilizers_db::FertilizersDb, traits::Fertilizer};
@@ -50,6 +56,41 @@ impl From<CalculationType> for concentration::DiluteCalcType {
 			CalculationType::Dose => concentration::DiluteCalcType::ResultOfDose,
 			CalculationType::Target => concentration::DiluteCalcType::TargetDose,
 		}
+	}
+}
+
+pub struct FertInputHelper {
+	fert_hints: Vec<Pair>,
+}
+impl FertInputHelper {
+	fn new(fertilizers_db: &FertilizersDb) -> Self {
+		Self {
+			fert_hints: fertilizers_db
+				.known_fertilizers
+				.iter()
+				.map(|(fname, _)| Pair { display: fname.clone(), replacement: fname.clone() })
+				.collect::<Vec<_>>(),
+		}
+	}
+}
+
+impl Helper for FertInputHelper {}
+impl Hinter for FertInputHelper {
+	type Hint = String;
+}
+impl Highlighter for FertInputHelper {}
+impl Validator for FertInputHelper {}
+impl Completer for FertInputHelper {
+	type Candidate = Pair;
+	fn complete(&self, line: &str, _pos: usize, _ctx: &Context) -> rustyline::Result<(usize, Vec<Self::Candidate>)> {
+		let candidates = self
+			.fert_hints
+			.iter()
+			.filter(|cn| cn.display.starts_with(line))
+			.map(|p| Pair { display: p.display.clone(), replacement: p.replacement.clone() })
+			.collect::<Vec<_>>();
+
+		Ok((0, candidates))
 	}
 }
 
@@ -113,11 +154,18 @@ fn main() -> Result<()> {
 		return Ok(())
 	}
 
+	let config = rustyline::Config::builder()
+		.completion_type(CompletionType::List)
+		.edit_mode(EditMode::Vi)
+		.output_stream(OutputStreamType::Stdout)
+		.build();
+	let mut editor = rustyline::Editor::with_config(config);
+	editor.set_helper(Some(FertInputHelper::new(&fertilizers_db)));
+
 	let fertilizer: Box<dyn Fertilizer> = match opts.fertilizer {
 		FertilizerType::Any => {
-			let input: String = Input::new()
-				.with_prompt("Input a fertilizer (e.g. `Miracle Gro`) or a compound (e.g. KNO3)")
-				.interact_text()?;
+			let input: String =
+				editor.readline("Input a fertilizer (e.g. `Miracle Gro`) or a compound (e.g. KNO3): ")?;
 
 			let maybe_known_fertilizer = fertilizers_db.known_fertilizers.get(input.as_str());
 
@@ -147,7 +195,7 @@ fn main() -> Result<()> {
 			}
 		},
 		FertilizerType::Compound => {
-			let compound = compound::Compound::new_from_stdin(&known_elements)?;
+			let compound = compound::Compound::new_from_stdin(&known_elements, &mut editor)?;
 			println!("Compound: {}", compound.name().bold());
 			println!("Molar mass: {}", compound.molar_mass().to_string().bold());
 			println!("Compounds by elements");
@@ -159,7 +207,7 @@ fn main() -> Result<()> {
 			Box::new(compound)
 		},
 		FertilizerType::Mix => {
-			let mix = mix::MixedFertilizer::new_from_stdin(&known_elements)?;
+			let mix = mix::MixedFertilizer::new_from_stdin(&known_elements, &mut editor)?;
 			println!("Mix: {}", mix.name().bold());
 			println!("Compounds by elements");
 			let components = mix.components_percentage(&known_elements);
@@ -175,21 +223,22 @@ fn main() -> Result<()> {
 		let data = fs::read_to_string(tank_toml.as_path())?;
 		tank::Tank::new_from_toml(data.as_str())?
 	} else if opts.tank_input == TankInputMode::Linear {
-		tank::Tank::new_from_stdin_linear(opts.absolute)?
+		tank::Tank::new_from_stdin_linear(opts.absolute, &mut editor)?
 	} else {
-		tank::Tank::new_from_stdin_volume(opts.absolute)?
+		tank::Tank::new_from_stdin_volume(opts.absolute, &mut editor)?
 	};
 
 	println!("{:?}", &tank);
 
 	let dosages = match opts.dosing_method {
-		DosingMethod::Dry => concentration::DryDosing::new_from_stdin(opts.calc.into(), &known_elements)?.dilute(
-			&*fertilizer,
-			&known_elements,
-			&tank,
-		)?,
-		DosingMethod::Solution => concentration::SolutionDosing::new_from_stdin(opts.calc.into(), &known_elements)?
+		DosingMethod::Dry => concentration::DryDosing::new_from_stdin(opts.calc.into(), &known_elements, &mut editor)?
 			.dilute(&*fertilizer, &known_elements, &tank)?,
+		DosingMethod::Solution => concentration::SolutionDosing::new_from_stdin(
+			opts.calc.into(),
+			&known_elements,
+			&mut editor,
+		)?
+		.dilute(&*fertilizer, &known_elements, &tank)?,
 	};
 
 	if opts.calc == CalculationType::Target {

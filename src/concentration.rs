@@ -1,8 +1,8 @@
 use crate::{compound::Compound, elements::*, tank::Tank, Fertilizer};
 use anyhow::{anyhow, Result};
 use crossterm::style::Stylize;
-use dialoguer::Input;
 use itertools::Itertools;
+use rustyline::{Editor, Helper};
 use serde::Deserialize;
 use std::{
 	cmp::Ordering,
@@ -122,7 +122,11 @@ pub struct DiluteResult {
 /// Represents a concentration after adding some fertilizer to the specific tank
 pub trait DiluteMethod {
 	/// Load dilute method from stdin
-	fn new_from_stdin(what: DiluteCalcType, known_elements: &KnownElements) -> Result<Self>
+	fn new_from_stdin<T: Helper>(
+		what: DiluteCalcType,
+		known_elements: &KnownElements,
+		editor: &mut Editor<T>,
+	) -> Result<Self>
 	where
 		Self: Sized;
 	/// Deserialize dilute method from JSON
@@ -133,16 +137,12 @@ pub trait DiluteMethod {
 	fn dilute(&self, fertilizer: &dyn Fertilizer, known_elements: &KnownElements, tank: &Tank) -> Result<DiluteResult>;
 }
 
-fn get_element_dose_target(known_elements: &KnownElements) -> Result<(String, f64)> {
-	let input: String = Input::new()
-		.with_prompt("Input target element or compound (e.g. NO3 or N): ")
-		.interact_text()?;
+fn get_element_dose_target<T: Helper>(known_elements: &KnownElements, editor: &mut Editor<T>) -> Result<(String, f64)> {
+	let input: String = editor.readline("Input target element or compound (e.g. NO3 or N): ")?;
 	let compound = Compound::new(input.as_str(), known_elements)?;
 	let concentrations = compound.components_percentage(known_elements);
 	let top_elt = concentrations[0].element.name.clone();
-	let input: String = Input::new()
-		.with_prompt("Input target element concentration (mg/l): ")
-		.interact_text()?;
+	let input: String = editor.readline("Input target element concentration (mg/l): ")?;
 	let target = input.parse::<f64>()?;
 	Ok((top_elt, target * concentrations[0].concentration))
 }
@@ -177,15 +177,19 @@ pub struct DryDosing {
 }
 
 impl DiluteMethod for DryDosing {
-	fn new_from_stdin(what: DiluteCalcType, known_elements: &KnownElements) -> Result<Self> {
+	fn new_from_stdin<T: Helper>(
+		what: DiluteCalcType,
+		known_elements: &KnownElements,
+		editor: &mut Editor<T>,
+	) -> Result<Self> {
 		match what {
 			DiluteCalcType::ResultOfDose => {
-				let input: String = Input::new().with_prompt("Dose size in grams (e.g. 2.5): ").interact_text()?;
+				let input: String = editor.readline("Dose size in grams (e.g. 2.5): ")?;
 				let dose = input.parse::<f64>()?;
 				Ok(Self { dilute_input: dose, what, ..Default::default() })
 			},
 			DiluteCalcType::TargetDose => {
-				let (target_element, dilute_input) = get_element_dose_target(known_elements)?;
+				let (target_element, dilute_input) = get_element_dose_target(known_elements, editor)?;
 				Ok(Self { dilute_input, what, target_element: Some(target_element) })
 			},
 		}
@@ -238,22 +242,26 @@ pub struct SolutionDosing {
 }
 
 impl DiluteMethod for SolutionDosing {
-	fn new_from_stdin(what: DiluteCalcType, known_elements: &KnownElements) -> Result<Self> {
+	fn new_from_stdin<T: Helper>(
+		what: DiluteCalcType,
+		known_elements: &KnownElements,
+		editor: &mut Editor<T>,
+	) -> Result<Self> {
 		match what {
 			DiluteCalcType::ResultOfDose => {
-				let input: String = Input::new().with_prompt("Container size in ml: ").interact_text()?;
+				let input: String = editor.readline("Container size in ml: ")?;
 				let container_volume = input.parse::<f64>()?;
-				let input: String = Input::new().with_prompt("Portion size in ml: ").interact_text()?;
+				let input: String = editor.readline("Portion size in ml: ")?;
 				let portion_volume = input.parse::<f64>()?;
-				let input: String = Input::new().with_prompt("Dose size in grams (e.g. 2.5): ").interact_text()?;
+				let input: String = editor.readline("Dose size in grams (e.g. 2.5): ")?;
 				let dose = input.parse::<f64>()?;
 				Ok(Self { container_volume, portion_volume, dose, what, ..Default::default() })
 			},
 			DiluteCalcType::TargetDose => {
-				let (target_element, dose) = get_element_dose_target(known_elements)?;
-				let input: String = Input::new().with_prompt("Container size in ml: ").interact_text()?;
+				let (target_element, dose) = get_element_dose_target(known_elements, editor)?;
+				let input: String = editor.readline("Container size in ml: ")?;
 				let container_volume = input.parse::<f64>()?;
-				let input: String = Input::new().with_prompt("Portion size in ml: ").interact_text()?;
+				let input: String = editor.readline("Portion size in ml: ")?;
 				let portion_volume = input.parse::<f64>()?;
 				Ok(Self { container_volume, portion_volume, dose, what, target_element: Some(target_element) })
 			},

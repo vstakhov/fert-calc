@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
-use dialoguer::Input;
 use length::{Length, MetricUnit::*};
+use rustyline::{Editor, Helper};
 use serde::Deserialize;
 use std::fmt::{Debug, Formatter};
 
@@ -38,12 +38,12 @@ impl Tank {
 		}
 	}
 	/// Interactively fill tank dimensions
-	pub fn new_from_stdin_linear(absolute: bool) -> Result<Self> {
-		let input: String = Input::new().with_prompt("Tank length (e.g. 90cm): ").interact_text()?;
+	pub fn new_from_stdin_linear<T: Helper>(absolute: bool, editor: &mut Editor<T>) -> Result<Self> {
+		let input: String = editor.readline("Tank length (e.g. 90cm): ")?;
 		let length = Tank::length_from_string_as_dm(input.as_str())?;
-		let input: String = Input::new().with_prompt("Tank width (e.g. 90cm): ").interact_text()?;
+		let input: String = editor.readline("Tank width (e.g. 90cm): ")?;
 		let width = Tank::length_from_string_as_dm(input.as_str())?;
-		let input: String = Input::new().with_prompt("Tank height (e.g. 90cm): ").interact_text()?;
+		let input: String = editor.readline("Tank height (e.g. 90cm): ")?;
 		let height = Tank::length_from_string_as_dm(input.as_str())?;
 
 		Ok(Self {
@@ -54,8 +54,8 @@ impl Tank {
 	}
 
 	/// Load tank from
-	pub fn new_from_stdin_volume(absolute: bool) -> Result<Self> {
-		let input: String = Input::new().with_prompt("Tank volume in liters: ").interact_text()?;
+	pub fn new_from_stdin_volume<T: Helper>(absolute: bool, editor: &mut Editor<T>) -> Result<Self> {
+		let input: String = editor.readline("Tank volume in liters: ")?;
 		let volume = input.parse::<f64>()?;
 		Ok(Self { linear: None, volume: Some(volume), absolute })
 	}

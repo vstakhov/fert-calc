@@ -5,8 +5,8 @@ use crate::{
 };
 use accurate::{sum::Sum2, traits::*};
 use anyhow::{anyhow, Result};
+use rustyline::Editor;
 
-use dialoguer::Input;
 use itertools::Itertools;
 use std::{
 	collections::HashMap,
@@ -162,8 +162,8 @@ impl Compound {
 	}
 
 	/// Returns a compound from stdin
-	pub fn new_from_stdin(known_elts: &KnownElements) -> Result<Self> {
-		let input_compound: String = Input::new().with_prompt("Input compound (e.g. KNO3)").interact_text()?;
+	pub fn new_from_stdin<T: rustyline::Helper>(known_elts: &KnownElements, editor: &mut Editor<T>) -> Result<Self> {
+		let input_compound: String = editor.readline("Input compound (e.g. KNO3): ")?;
 		Compound::new(input_compound.as_str(), known_elts)
 	}
 

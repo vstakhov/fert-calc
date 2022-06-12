@@ -13,7 +13,6 @@ repository = "https://github.com/vstakhov/fert-calc"
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 anyhow = "1.0"
-dialoguer = "0.10"
 crossterm = "0.23"
 accurate = { version = "0.3.1", features = [] }
 clap = {version = "3.1.18", features = ["derive"]}
@@ -21,6 +20,7 @@ length = "0.2.0"
 itertools = "0.10.3"
 dyn-clone = "1.0.5"
 toml = "0.5.9"
+rustyline = "9.1.2"
 
 [profile.release]
 lto = true

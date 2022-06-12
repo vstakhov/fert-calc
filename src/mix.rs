@@ -4,8 +4,8 @@ use std::{
 	fmt::{Display, Formatter},
 };
 
-use dialoguer::Input;
 use itertools::Itertools;
+use rustyline::{Editor, Helper};
 
 use crate::{
 	compound::Compound,
@@ -129,18 +129,18 @@ impl MixedFertilizer {
 		}
 	}
 	/// Parses a mixed fertilizer from stdin
-	pub fn new_from_stdin(known_elements: &KnownElements) -> Result<Self> {
+	pub fn new_from_stdin<T: Helper>(known_elements: &KnownElements, editor: &mut Editor<T>) -> Result<Self> {
 		is_sane_elements(known_elements)?;
 
 		let mut macros: MacroElements = Default::default();
 
-		let input: String = Input::new().with_prompt("Input total N in percents").interact_text()?;
+		let input: String = editor.readline("Input total N in percents: ")?;
 		macros.nitrogen_percentage = input.parse::<f64>()?;
-		let input: String = Input::new().with_prompt("Input total P2O5 in percents").interact_text()?;
+		let input: String = editor.readline("Input total P2O5 in percents: ")?;
 		macros.p2o5_percentage = input.parse::<f64>()?;
-		let input: String = Input::new().with_prompt("Input total K2O in percents").interact_text()?;
+		let input: String = editor.readline("Input total K2O in percents: ")?;
 		macros.k2o_percentage = input.parse::<f64>()?;
-		let input: String = Input::new().with_prompt("Input total MgO in percents").interact_text()?;
+		let input: String = editor.readline("Input total MgO in percents: ")?;
 		macros.mgo_percentage = input.parse::<f64>()?;
 
 		let mut res = Self { name: macros.name_from_npk(), ..Default::default() };
