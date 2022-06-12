@@ -159,10 +159,10 @@ fn main() -> Result<()> {
 		.edit_mode(EditMode::Vi)
 		.output_stream(OutputStreamType::Stdout)
 		.build();
-	let mut fert_editor = rustyline::Editor::with_config(config.clone());
+	let mut fert_editor = rustyline::Editor::with_config(config);
 	fert_editor.set_helper(Some(FertInputHelper::new(&fertilizers_db)));
 
-	let mut generic_editor = rustyline::Editor::<()>::with_config(config.clone());
+	let mut generic_editor = rustyline::Editor::<()>::with_config(config);
 
 	let fertilizer: Box<dyn Fertilizer> = match opts.fertilizer {
 		FertilizerType::Any => {
