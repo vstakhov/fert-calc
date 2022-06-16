@@ -5,7 +5,7 @@ use std::collections::HashMap;
 /// All known fertilizers indexed by their name
 #[derive(Default)]
 pub struct FertilizersDb {
-	pub known_fertilizers: HashMap<String, Box<dyn Fertilizer>>,
+	pub known_fertilizers: HashMap<String, Box<dyn Fertilizer + Send>>,
 }
 
 impl FertilizersDb {
@@ -25,7 +25,7 @@ impl FertilizersDb {
 
 			if fert_obj.contains_key("compounds") {
 				let mix = Box::new(MixedFertilizer::new_from_toml_object(name.as_str(), obj, known_elts, true)?);
-				self.known_fertilizers.insert(name.clone(), mix as Box<dyn Fertilizer>);
+				self.known_fertilizers.insert(name.clone(), mix as Box<dyn Fertilizer + Send>);
 			} else if fert_obj.contains_key("formula") {
 				let formula = fert_obj
 					.get("formula")
@@ -33,7 +33,8 @@ impl FertilizersDb {
 					.as_str()
 					.ok_or_else(|| anyhow!("formula must be string in {}", name))?;
 				let compound = Box::new(Compound::new(formula, known_elts)?);
-				self.known_fertilizers.insert(name.clone(), compound as Box<dyn Fertilizer>);
+				self.known_fertilizers
+					.insert(name.clone(), compound as Box<dyn Fertilizer + Send>);
 			}
 		}
 

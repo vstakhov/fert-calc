@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::Parser;
 use crossterm::style::Stylize;
 use itertools::Itertools;
@@ -9,7 +9,11 @@ use rustyline::{
 	validate::Validator,
 	CompletionType, Context, EditMode, Helper, OutputStreamType,
 };
-use std::{fs, path::PathBuf};
+use std::{
+	fs,
+	path::PathBuf,
+	sync::{Arc, Mutex},
+};
 
 use crate::{concentration::DiluteMethod, fertilizers_db::FertilizersDb, traits::Fertilizer};
 
@@ -24,6 +28,7 @@ mod traits;
 #[cfg(test)]
 #[macro_use]
 mod test_utils;
+mod web;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, clap::ArgEnum)]
 enum TankInputMode {
@@ -123,9 +128,13 @@ pub(crate) struct Opts {
 	/// Use absolute volume without corrections
 	#[clap(long, short = 'a')]
 	absolute: bool,
+	/// Work as a web server
+	#[clap(long, short = 's')]
+	serve: bool,
 }
 
-fn main() -> Result<()> {
+#[actix_web::main]
+async fn main() -> Result<()> {
 	let opts = Opts::parse();
 
 	let known_elements = if let Some(elts_path) = opts.elements {
@@ -154,6 +163,12 @@ fn main() -> Result<()> {
 		return Ok(())
 	}
 
+	if opts.serve {
+		return web::run_server(Arc::new(Mutex::new(fertilizers_db)))
+			.await
+			.map_err(|e| anyhow!("server error: {:?}", e))
+	}
+
 	let config = rustyline::Config::builder()
 		.completion_type(CompletionType::List)
 		.edit_mode(EditMode::Vi)
@@ -164,7 +179,7 @@ fn main() -> Result<()> {
 
 	let mut generic_editor = rustyline::Editor::<()>::with_config(config);
 
-	let fertilizer: Box<dyn Fertilizer> = match opts.fertilizer {
+	let fertilizer: Box<dyn Fertilizer + Send> = match opts.fertilizer {
 		FertilizerType::Any => {
 			let input: String =
 				fert_editor.readline("Input a fertilizer (e.g. `Miracle Gro`) or a compound (e.g. KNO3): ")?;
