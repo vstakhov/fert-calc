@@ -164,7 +164,7 @@ async fn main() -> Result<()> {
 	}
 
 	if opts.serve {
-		return web::run_server(Arc::new(Mutex::new(fertilizers_db)))
+		return web::run_server(Arc::new(Mutex::new(fertilizers_db)), Arc::new(Mutex::new(known_elements)))
 			.await
 			.map_err(|e| anyhow!("server error: {:?}", e))
 	}

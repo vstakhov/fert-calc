@@ -3,7 +3,7 @@ use anyhow::{anyhow, Result};
 use crossterm::style::Stylize;
 use itertools::Itertools;
 use rustyline::{Editor, Helper};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{
 	cmp::Ordering,
 	fmt::{Debug, Formatter},
@@ -23,11 +23,13 @@ impl Default for DiluteCalcType {
 }
 
 /// Element name and it's concentration
+#[derive(Serialize, Clone)]
 pub struct ElementConcentrationAlias {
 	pub element_alias: String,
 	pub concentration: f64,
 }
 /// Concentration of the all elements in a fertilizer with all elements' aliases
+#[derive(Serialize, Clone)]
 pub struct ElementsConcentrationsWithAliases {
 	pub element: Element,
 	pub concentration: f64,
@@ -47,11 +49,13 @@ impl Debug for ElementsConcentrationsWithAliases {
 }
 
 /// Element name and it's dose
+#[derive(Serialize, Clone)]
 pub struct ElementAliasDose {
 	pub element_alias: String,
 	pub dose: f64,
 }
 /// Dosing of the all elements in a fertilizer with all elements' aliases
+#[derive(Serialize, Clone)]
 pub struct ElementsDosesWithAliases {
 	pub element: Element,
 	pub dose: f64,

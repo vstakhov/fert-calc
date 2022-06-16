@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{
 	cmp::Ordering,
 	collections::HashMap,
@@ -12,7 +12,7 @@ use std::{
 use crate::compound::Compound;
 
 /// A primitive element (not necessarily simple)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Element {
 	pub molar_mass: f64,
 	pub name: String,
