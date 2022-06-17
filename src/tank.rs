@@ -2,6 +2,8 @@ use anyhow::{anyhow, Result};
 use length::{Length, MetricUnit::*};
 use rustyline::{Editor, Helper};
 use serde::Deserialize;
+use either::Either;
+use serde_json;
 use std::fmt::{Debug, Formatter};
 
 /// More or less real approximation of the volume to real volume relation
@@ -14,11 +16,18 @@ struct LinearDimensions {
 	width: f64,
 }
 
+impl LinearDimensions {
+	fn volume(&self) -> f64 {
+		self.height * self.length * self.width
+	}
+}
+
 /// Tank volume holder
 #[derive(Deserialize, Clone)]
 pub struct Tank {
-	linear: Option<LinearDimensions>,
-	volume: Option<f64>,
+	#[serde(with = "either::serde_untagged")]
+	volume: Either<f64, LinearDimensions>,
+	#[serde(default)]
 	absolute: bool,
 }
 
@@ -47,8 +56,7 @@ impl Tank {
 		let height = Tank::length_from_string_as_dm(input.as_str())?;
 
 		Ok(Self {
-			linear: Some(LinearDimensions { height, length, width }),
-			volume: Some(length * height * width),
+			volume: Either::Right(LinearDimensions { height, length, width }),
 			absolute,
 		})
 	}
@@ -57,30 +65,36 @@ impl Tank {
 	pub fn new_from_stdin_volume<T: Helper>(absolute: bool, editor: &mut Editor<T>) -> Result<Self> {
 		let input: String = editor.readline("Tank volume in liters: ")?;
 		let volume = input.parse::<f64>()?;
-		Ok(Self { linear: None, volume: Some(volume), absolute })
+		Ok(Self { volume: Either::Left(volume), absolute })
 	}
 
 	/// Load tank data from toml
 	pub fn new_from_toml(input: &str) -> Result<Self> {
-		let mut tank: Tank = toml::from_str(input)?;
-		if tank.volume.is_none() {
-			if let Some(lin) = &tank.linear {
-				tank.volume = Some(lin.length * lin.height * lin.width);
-			} else {
-				return Err(anyhow!("Invalid tank specifications"))
-			}
-		}
+		let tank: Tank = toml::from_str(input)?;
+		Ok(tank)
+	}
+
+	/// Load tank data from JSON
+	pub fn new_from_json(input: &str) -> Result<Self> {
+		let tank: Tank = serde_json::from_str(input)?;
 		Ok(tank)
 	}
 
 	/// Returns a real volume of the tank (approximately volume * 0.9)
 	pub fn effective_volume(&self) -> usize {
 		let mult = if self.absolute { 1.0 } else { REAL_VOLUME_MULT };
-		self.volume.map_or(0, |vol| (vol * mult) as usize)
+		let vol = match self.volume.as_ref() {
+			Either::Left(vol) => *vol,
+			Either::Right(lin) => lin.volume()
+		};
+		(vol * mult) as usize
 	}
 
 	pub fn metric_volume(&self) -> usize {
-		self.volume.map_or(0, |vol| vol as usize)
+		(match self.volume.as_ref() {
+			Either::Left(vol) => *vol,
+			Either::Right(lin) => lin.volume()
+		}) as usize
 	}
 }
 
@@ -98,26 +112,50 @@ mod tests {
 
 	fn sample_tank_linear() -> &'static str {
 		r#"
-		absolute = false
-		[linear]
+		[volume]
 		  height = 5.0
 		  width = 5.0
 		  length = 9.0
-		  "#
+		"#
 	}
 	fn sample_tank_volume() -> &'static str {
 		r#"
 		volume = 200
-		absolute = false
 		"#
 	}
 
 	#[test]
-	fn test_tanks() {
+	fn test_tanks_toml() {
 		let tank = Tank::new_from_toml(sample_tank_linear()).unwrap();
 		assert_eq!(tank.metric_volume(), 225);
 		assert_eq!(tank.effective_volume(), 191);
 		let tank = Tank::new_from_toml(sample_tank_volume()).unwrap();
+		assert_eq!(tank.metric_volume(), 200);
+		assert_eq!(tank.effective_volume(), 170);
+	}
+
+	fn sample_tank_linear_json() -> &'static str {
+		r#"
+		{"volume": {
+		  "height": 5.0,
+		  "width": 5.0,
+		  "length": 9.0
+		 }
+		}
+		"#
+	}
+	fn sample_tank_volume_json() -> &'static str {
+		r#"
+		{"volume": 200}
+		"#
+	}
+
+	#[test]
+	fn test_tanks_json() {
+		let tank = Tank::new_from_json(sample_tank_linear_json()).unwrap();
+		assert_eq!(tank.metric_volume(), 225);
+		assert_eq!(tank.effective_volume(), 191);
+		let tank = Tank::new_from_json(sample_tank_volume_json()).unwrap();
 		assert_eq!(tank.metric_volume(), 200);
 		assert_eq!(tank.effective_volume(), 170);
 	}
