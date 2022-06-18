@@ -8,7 +8,7 @@ use actix_web::{
 };
 use anyhow::anyhow;
 use either::{Either, Left, Right};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{
 	fmt,
 	sync::{Arc, Mutex},
@@ -83,7 +83,7 @@ impl From<serde_json::Error> for WebError {
 }
 
 // Generic calculation request for a specific tank and compound/ready fertilizer
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 struct CalcData {
 	tank: Tank,
 	fertilizer: String,

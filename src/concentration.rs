@@ -11,7 +11,7 @@ use std::{
 use strum::EnumString;
 
 /// How do we calculate dilution
-#[derive(Deserialize, Clone, Copy, Debug, EnumString)]
+#[derive(Deserialize, Serialize, Clone, Copy, Debug, EnumString)]
 pub enum DiluteCalcType {
 	ResultOfDose,
 	TargetDose,
@@ -119,7 +119,7 @@ impl PartialEq for ElementsDosesWithAliases {
 
 impl Eq for ElementsDosesWithAliases {}
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct DiluteResult {
 	pub compound_dose: f64,
 	pub elements_dose: Vec<ElementsDosesWithAliases>,
@@ -133,6 +133,17 @@ fn get_element_dose_target<T: Helper>(known_elements: &KnownElements, editor: &m
 	let input: String = editor.readline("Input target element concentration (mg/l): ")?;
 	let target = input.parse::<f64>()?;
 	Ok((top_elt, target * concentrations[0].concentration))
+}
+
+fn element_from_compound(elt_name: &str, known_elements: &KnownElements) -> Result<(Element, f64)> {
+	if let Some(elt) = known_elements.elements.get(elt_name) {
+		Ok((elt.clone(), 1.0))
+	} else {
+		let compound = Compound::new(elt_name, known_elements)?;
+		let concentrations = compound.components_percentage(known_elements);
+		let top_elt = &concentrations[0];
+		Ok((top_elt.element.clone(), 1.0 / top_elt.concentration))
+	}
 }
 
 fn dilute_fertilizer(
@@ -157,11 +168,11 @@ fn dilute_fertilizer(
 }
 
 /// A concrete implementation of the dosing with the value in grams
-#[derive(Default, Debug, Deserialize, Clone)]
+#[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct DryDosing {
-	dilute_input: f64,
-	what: DiluteCalcType,
-	target_element: Option<String>,
+	pub dilute_input: f64,
+	pub what: DiluteCalcType,
+	pub target_element: Option<String>,
 }
 
 impl DiluteMethod for DryDosing {
@@ -194,26 +205,26 @@ impl DiluteMethod for DryDosing {
 
 	fn dilute(&self, fertilizer: &dyn Fertilizer, known_elements: &KnownElements, tank: &Tank) -> Result<DiluteResult> {
 		let concentrations = fertilizer.components_percentage(known_elements);
-		let mult = match self.what {
-			DiluteCalcType::ResultOfDose => self.dilute_input * 1000.0 / tank.effective_volume() as f64,
-			DiluteCalcType::TargetDose => {
-				// Get target element concentration
-				let target_elt = self
-					.target_element
-					.as_ref()
-					.ok_or_else(|| anyhow!("no target element defined"))?
-					.as_str();
-				let fert_elt = concentrations
-					.get(
+		let mult =
+			match self.what {
+				DiluteCalcType::ResultOfDose => self.dilute_input * 1000.0 / tank.effective_volume() as f64,
+				DiluteCalcType::TargetDose => {
+					// Get target element concentration
+					let target_elt_name = self
+						.target_element
+						.as_ref()
+						.ok_or_else(|| anyhow!("no target element defined"))?
+						.as_str();
+					let (target_elt, elt_conc) = element_from_compound(target_elt_name, known_elements)?;
+					let fert_elt =
 						concentrations
-							.iter()
-							.position(|elt| elt.element.name == target_elt)
-							.ok_or_else(|| anyhow!("target element {} is not in the fertilizer", target_elt))?,
-					)
-					.unwrap();
-				self.dilute_input / fert_elt.concentration
-			},
-		};
+							.get(concentrations.iter().position(|elt| elt.element == target_elt).ok_or_else(|| {
+								anyhow!("target element {:?} is not in the fertilizer", target_elt_name)
+							})?)
+							.unwrap();
+					self.dilute_input / (fert_elt.concentration * elt_conc)
+				},
+			};
 		// For dry dosing we simply dilute all components by a tank's effective volume
 		let concentrations = dilute_fertilizer(concentrations, mult);
 		Ok(DiluteResult {
@@ -224,13 +235,13 @@ impl DiluteMethod for DryDosing {
 }
 
 /// A concrete implementation of the dosing by dissolving dry salt in a concentrated solution
-#[derive(Default, Debug, Deserialize, Clone)]
+#[derive(Default, Debug, Deserialize, Serialize, Clone)]
 pub struct SolutionDosing {
-	container_volume: f64,
-	portion_volume: f64,
-	dose: f64,
-	what: DiluteCalcType,
-	target_element: Option<String>,
+	pub container_volume: f64,
+	pub portion_volume: f64,
+	pub dose: f64,
+	pub what: DiluteCalcType,
+	pub target_element: Option<String>,
 }
 
 impl DiluteMethod for SolutionDosing {
@@ -279,20 +290,21 @@ impl DiluteMethod for SolutionDosing {
 			DiluteCalcType::ResultOfDose => self.dose,
 			DiluteCalcType::TargetDose => {
 				// Get target element concentration
-				let target_elt = self
+				let target_elt_name = self
 					.target_element
 					.as_ref()
 					.ok_or_else(|| anyhow!("no target element defined"))?
 					.as_str();
+				let (target_elt, elt_conc) = element_from_compound(target_elt_name, known_elements)?;
 				let fert_elt = concentrations
 					.get(
 						concentrations
 							.iter()
-							.position(|elt| elt.element.name == target_elt)
-							.ok_or_else(|| anyhow!("target element {} is not in the fertilizer", target_elt))?,
+							.position(|elt| elt.element == target_elt)
+							.ok_or_else(|| anyhow!("target element {} is not in the fertilizer", target_elt_name))?,
 					)
 					.unwrap();
-				self.dose * tank.effective_volume() as f64 / fert_elt.concentration * self.container_volume /
+				self.dose * tank.effective_volume() as f64 / (fert_elt.concentration * elt_conc) * self.container_volume /
 					self.portion_volume / 1000.0
 			},
 		};

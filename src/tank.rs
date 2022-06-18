@@ -2,13 +2,13 @@ use anyhow::{anyhow, Result};
 use either::Either;
 use length::{Length, MetricUnit::*};
 use rustyline::{Editor, Helper};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Formatter};
 
 /// More or less real approximation of the volume to real volume relation
 const REAL_VOLUME_MULT: f64 = 0.85;
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 struct LinearDimensions {
 	height: f64,
 	length: f64,
@@ -22,7 +22,7 @@ impl LinearDimensions {
 }
 
 /// Tank volume holder
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct Tank {
 	#[serde(with = "either::serde_untagged")]
 	volume: Either<f64, LinearDimensions>,
