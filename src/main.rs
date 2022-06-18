@@ -15,7 +15,10 @@ use std::{
 	sync::{Arc, Mutex},
 };
 
-use crate::{concentration::DiluteMethod, fertilizers_db::FertilizersDb, traits::Fertilizer};
+use crate::{
+	fertilizers_db::FertilizersDb,
+	traits::{DiluteMethod, Fertilizer},
+};
 
 mod compound;
 mod concentration;

@@ -1,9 +1,8 @@
 use anyhow::{anyhow, Result};
+use either::Either;
 use length::{Length, MetricUnit::*};
 use rustyline::{Editor, Helper};
 use serde::Deserialize;
-use either::Either;
-use serde_json;
 use std::fmt::{Debug, Formatter};
 
 /// More or less real approximation of the volume to real volume relation
@@ -55,10 +54,7 @@ impl Tank {
 		let input: String = editor.readline("Tank height (e.g. 90cm): ")?;
 		let height = Tank::length_from_string_as_dm(input.as_str())?;
 
-		Ok(Self {
-			volume: Either::Right(LinearDimensions { height, length, width }),
-			absolute,
-		})
+		Ok(Self { volume: Either::Right(LinearDimensions { height, length, width }), absolute })
 	}
 
 	/// Load tank from
@@ -74,7 +70,8 @@ impl Tank {
 		Ok(tank)
 	}
 
-	/// Load tank data from JSON
+	/// Load tank data from JSON (might be useful in future)
+	#[allow(dead_code)]
 	pub fn new_from_json(input: &str) -> Result<Self> {
 		let tank: Tank = serde_json::from_str(input)?;
 		Ok(tank)
@@ -85,7 +82,7 @@ impl Tank {
 		let mult = if self.absolute { 1.0 } else { REAL_VOLUME_MULT };
 		let vol = match self.volume.as_ref() {
 			Either::Left(vol) => *vol,
-			Either::Right(lin) => lin.volume()
+			Either::Right(lin) => lin.volume(),
 		};
 		(vol * mult) as usize
 	}
@@ -93,7 +90,7 @@ impl Tank {
 	pub fn metric_volume(&self) -> usize {
 		(match self.volume.as_ref() {
 			Either::Left(vol) => *vol,
-			Either::Right(lin) => lin.volume()
+			Either::Right(lin) => lin.volume(),
 		}) as usize
 	}
 }

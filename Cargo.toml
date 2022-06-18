@@ -24,6 +24,7 @@ toml = "0.5.9"
 rustyline = "9.1.2"
 actix-web = "4.1.0"
 either = { version = "1.6.1", features = ["serde"] }
+strum = { version = "0.24", features = ["derive"] }
 
 [profile.release]
 lto = true

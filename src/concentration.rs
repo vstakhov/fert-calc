@@ -1,4 +1,4 @@
-use crate::{compound::Compound, elements::*, tank::Tank, Fertilizer};
+use crate::{compound::Compound, elements::*, tank::Tank, traits::DiluteMethod, Fertilizer};
 use anyhow::{anyhow, Result};
 use crossterm::style::Stylize;
 use itertools::Itertools;
@@ -8,9 +8,10 @@ use std::{
 	cmp::Ordering,
 	fmt::{Debug, Formatter},
 };
+use strum::EnumString;
 
 /// How do we calculate dilution
-#[derive(Deserialize, Clone, Copy, Debug)]
+#[derive(Deserialize, Clone, Copy, Debug, EnumString)]
 pub enum DiluteCalcType {
 	ResultOfDose,
 	TargetDose,
@@ -118,27 +119,10 @@ impl PartialEq for ElementsDosesWithAliases {
 
 impl Eq for ElementsDosesWithAliases {}
 
+#[derive(Serialize, Clone)]
 pub struct DiluteResult {
 	pub compound_dose: f64,
 	pub elements_dose: Vec<ElementsDosesWithAliases>,
-}
-
-/// Represents a concentration after adding some fertilizer to the specific tank
-pub trait DiluteMethod {
-	/// Load dilute method from stdin
-	fn new_from_stdin<T: Helper>(
-		what: DiluteCalcType,
-		known_elements: &KnownElements,
-		editor: &mut Editor<T>,
-	) -> Result<Self>
-	where
-		Self: Sized;
-	/// Deserialize dilute method from JSON
-	fn new_from_toml(toml: &str) -> Result<Self>
-	where
-		Self: Sized;
-	/// Dilute fertilizer in a specific tank using known dilute method
-	fn dilute(&self, fertilizer: &dyn Fertilizer, known_elements: &KnownElements, tank: &Tank) -> Result<DiluteResult>;
 }
 
 fn get_element_dose_target<T: Helper>(known_elements: &KnownElements, editor: &mut Editor<T>) -> Result<(String, f64)> {
@@ -201,6 +185,10 @@ impl DiluteMethod for DryDosing {
 
 	fn new_from_toml(toml: &str) -> Result<Self> {
 		let res: Self = toml::from_str(toml)?;
+		Ok(res)
+	}
+	fn new_from_json(json: &str) -> Result<Self> {
+		let res: Self = serde_json::from_str(json)?;
 		Ok(res)
 	}
 
@@ -274,6 +262,14 @@ impl DiluteMethod for SolutionDosing {
 
 	fn new_from_toml(toml: &str) -> Result<Self> {
 		let res: Self = toml::from_str(toml)?;
+		Ok(res)
+	}
+
+	fn new_from_json(toml: &str) -> Result<Self>
+	where
+		Self: Sized,
+	{
+		let res: Self = serde_json::from_str(toml)?;
 		Ok(res)
 	}
 
