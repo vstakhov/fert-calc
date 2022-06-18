@@ -24,13 +24,13 @@ impl Default for DiluteCalcType {
 }
 
 /// Element name and it's concentration
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ElementConcentrationAlias {
 	pub element_alias: String,
 	pub concentration: f64,
 }
 /// Concentration of the all elements in a fertilizer with all elements' aliases
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ElementsConcentrationsWithAliases {
 	pub element: Element,
 	pub concentration: f64,
@@ -50,13 +50,13 @@ impl Debug for ElementsConcentrationsWithAliases {
 }
 
 /// Element name and it's dose
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Deserialize)]
 pub struct ElementAliasDose {
 	pub element_alias: String,
 	pub dose: f64,
 }
 /// Dosing of the all elements in a fertilizer with all elements' aliases
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Deserialize)]
 pub struct ElementsDosesWithAliases {
 	pub element: Element,
 	pub dose: f64,

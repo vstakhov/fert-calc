@@ -12,7 +12,7 @@ use std::{
 use crate::compound::Compound;
 
 /// A primitive element (not necessarily simple)
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Element {
 	pub molar_mass: f64,
 	pub name: String,

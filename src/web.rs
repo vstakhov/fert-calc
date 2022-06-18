@@ -133,3 +133,46 @@ pub async fn run_server(
 	.run()
 	.await
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::test_utils::{load_known_elements, load_known_fertilizers, MOLAR_MASS_EPSILON};
+	use actix_web::{test, App};
+
+	fn new_state() -> WebState {
+		let known_elts = load_known_elements();
+		let known_fertilizers = load_known_fertilizers(&known_elts);
+
+		WebState { db: Arc::new(Mutex::new(known_fertilizers)), known_elements: Arc::new(Mutex::new(known_elts)) }
+	}
+
+	#[actix_web::test]
+	async fn test_list_db() {
+		let app_state = new_state();
+		let app = test::init_service(App::new().app_data(web::Data::new(app_state.clone())).service(list_db)).await;
+		let req = test::TestRequest::get().uri("/list").to_request();
+		let resp: Vec<String> = test::call_and_read_body_json(&app, req).await;
+		assert!(!resp.is_empty());
+		assert!(resp.iter().any(|f| f.as_str() == "Urea"));
+	}
+
+	#[actix_web::test]
+	async fn test_info() {
+		let app_state = new_state();
+		let nitrogen = {
+			let locked_elts = app_state.known_elements.lock().unwrap();
+			locked_elts.elements.get("N").unwrap().clone()
+		};
+		let app =
+			test::init_service(App::new().app_data(web::Data::new(app_state.clone())).service(fertilizer_info)).await;
+		let req = test::TestRequest::get().uri("/info/KNO3").to_request();
+		let resp: Vec<ElementsConcentrationsWithAliases> = test::call_and_read_body_json(&app, req).await;
+		assert!(!resp.is_empty());
+		assert_delta_eq!(
+			resp.iter().find(|elt| elt.element == nitrogen).unwrap().concentration,
+			0.1385,
+			MOLAR_MASS_EPSILON
+		);
+	}
+}
