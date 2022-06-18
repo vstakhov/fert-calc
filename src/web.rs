@@ -137,7 +137,7 @@ pub async fn run_server(
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::test_utils::{load_known_elements, load_known_fertilizers, MOLAR_MASS_EPSILON};
+	use crate::test_utils::{load_known_elements, load_known_fertilizers, sample_tank, MOLAR_MASS_EPSILON};
 	use actix_web::{test, App};
 
 	fn new_state() -> WebState {
@@ -145,6 +145,31 @@ mod tests {
 		let known_fertilizers = load_known_fertilizers(&known_elts);
 
 		WebState { db: Arc::new(Mutex::new(known_fertilizers)), known_elements: Arc::new(Mutex::new(known_elts)) }
+	}
+
+	fn new_calc_data_dry() -> CalcData {
+		CalcData {
+			fertilizer: "KNO3".to_owned(),
+			tank: sample_tank(),
+			dosing_data: Left(DryDosing {
+				dilute_input: 10.0,
+				target_element: Some("NO3".to_owned()),
+				what: DiluteCalcType::TargetDose,
+			}),
+		}
+	}
+	fn new_calc_data_solution() -> CalcData {
+		CalcData {
+			fertilizer: "KNO3".to_owned(),
+			tank: sample_tank(),
+			dosing_data: Right(SolutionDosing {
+				portion_volume: 20.0,
+				container_volume: 1000.0,
+				dose: 10.0,
+				target_element: Some("NO3".to_owned()),
+				what: DiluteCalcType::TargetDose,
+			}),
+		}
 	}
 
 	#[actix_web::test]
@@ -174,5 +199,22 @@ mod tests {
 			0.1385,
 			MOLAR_MASS_EPSILON
 		);
+	}
+
+	#[actix_web::test]
+	async fn test_calc() {
+		let app_state = new_state();
+		let app = test::init_service(App::new().app_data(web::Data::new(app_state.clone())).service(calc)).await;
+		let dry_dose = new_calc_data_dry();
+		let req = test::TestRequest::get().uri("/calc").set_json(&dry_dose).to_request();
+		let resp: DiluteResult = test::call_and_read_body_json(&app, req).await;
+		// Tank 170, target: 10ppm NO3
+		assert_delta_eq!(resp.compound_dose, 2.772, MOLAR_MASS_EPSILON);
+
+		let dry_dose = new_calc_data_solution();
+		let req = test::TestRequest::get().uri("/calc").set_json(&dry_dose).to_request();
+		let resp: DiluteResult = test::call_and_read_body_json(&app, req).await;
+		// Tank 170, target: 10ppm NO3, container: 1L, dose: 20ml
+		assert_delta_eq!(resp.compound_dose, 138.599, MOLAR_MASS_EPSILON);
 	}
 }
