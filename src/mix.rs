@@ -21,6 +21,8 @@ pub struct MixedFertilizer {
 	pub elements_composition: HashMap<Element, f64>,
 	/// Public name of the mix
 	pub name: String,
+	/// Description of the fertilizer
+	pub description: String,
 }
 
 impl Display for MixedFertilizer {
@@ -180,7 +182,14 @@ impl MixedFertilizer {
 			.as_table()
 			.ok_or_else(|| anyhow!("expect compounds to be an object"))?;
 
-		let mut res = Self { name: name.to_owned(), ..Default::default() };
+		let description = if let Some(descr_obj) = obj.as_table().unwrap().get("description") {
+			descr_obj.as_str().unwrap_or("")
+		}
+		else {
+			""
+		};
+
+		let mut res = Self { name: name.to_owned(), description: description.to_owned(), ..Default::default() };
 
 		// Ineffective, but who cares
 		if !compounds
@@ -242,6 +251,10 @@ impl Fertilizer for MixedFertilizer {
 
 	fn name(&self) -> &str {
 		self.name.as_str()
+	}
+
+	fn description(&self) -> String {
+		self.description.clone()
 	}
 }
 

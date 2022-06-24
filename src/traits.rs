@@ -11,6 +11,7 @@ use rustyline::{Editor, Helper};
 pub trait Fertilizer: DynClone {
 	fn components_percentage(&self, known_elts: &KnownElements) -> Vec<ElementsConcentrationsWithAliases>;
 	fn name(&self) -> &str;
+	fn description(&self) -> String;
 }
 
 /// Represents a concentration after adding some fertilizer to the specific tank

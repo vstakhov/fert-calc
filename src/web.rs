@@ -24,7 +24,7 @@ struct WebState {
 #[get("/list")]
 async fn list_db(state: web::Data<WebState>) -> impl Responder {
 	let locked_db = state.db.lock().unwrap();
-	let body = serde_json::to_string(&locked_db.known_fertilizers.keys().collect::<Vec<_>>()).unwrap();
+	let body = serde_json::to_string(&locked_db.known_fertilizers.iter().map(|(name, fert)| (name, fert.description())).collect::<Vec<_>>()).unwrap();
 	HttpResponse::Ok().content_type(ContentType::json()).body(body)
 }
 
@@ -177,9 +177,9 @@ mod tests {
 		let app_state = new_state();
 		let app = test::init_service(App::new().app_data(web::Data::new(app_state.clone())).service(list_db)).await;
 		let req = test::TestRequest::get().uri("/list").to_request();
-		let resp: Vec<String> = test::call_and_read_body_json(&app, req).await;
+		let resp: Vec<(String, String)> = test::call_and_read_body_json(&app, req).await;
 		assert!(!resp.is_empty());
-		assert!(resp.iter().any(|f| f.as_str() == "Urea"));
+		assert!(resp.iter().any(|f| f.0.as_str() == "Urea"));
 	}
 
 	#[actix_web::test]
