@@ -24,7 +24,14 @@ struct WebState {
 #[get("/list")]
 async fn list_db(state: web::Data<WebState>) -> impl Responder {
 	let locked_db = state.db.lock().unwrap();
-	let body = serde_json::to_string(&locked_db.known_fertilizers.iter().map(|(name, fert)| (name, fert.description())).collect::<Vec<_>>()).unwrap();
+	let body = serde_json::to_string(
+		&locked_db
+			.known_fertilizers
+			.iter()
+			.map(|(name, fert)| (name, fert.description()))
+			.collect::<Vec<_>>(),
+	)
+	.unwrap();
 	HttpResponse::Ok().content_type(ContentType::json()).body(body)
 }
 

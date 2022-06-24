@@ -184,8 +184,7 @@ impl MixedFertilizer {
 
 		let description = if let Some(descr_obj) = obj.as_table().unwrap().get("description") {
 			descr_obj.as_str().unwrap_or("")
-		}
-		else {
+		} else {
 			""
 		};
 

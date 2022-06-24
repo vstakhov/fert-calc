@@ -216,7 +216,9 @@ impl Fertilizer for Compound {
 	fn name(&self) -> &str {
 		self.name.as_str()
 	}
-	fn description(&self) -> String { format!("Compound: {}", self.name) }
+	fn description(&self) -> String {
+		format!("Compound: {}", self.name)
+	}
 }
 
 #[cfg(test)]
