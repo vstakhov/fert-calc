@@ -139,7 +139,7 @@ pub async fn run_server(
 			.service(list_db)
 			.service(fertilizer_info);
 		if let Some(dir) = &static_dir {
-			app.service(actix_files::Files::new("/", dir.as_str()))
+			app.service(actix_files::Files::new("/", dir.as_str()).index_file("index.html"))
 		} else {
 			app
 		}
