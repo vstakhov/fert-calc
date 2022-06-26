@@ -23,6 +23,7 @@ dyn-clone = "1.0.5"
 toml = "0.5.9"
 rustyline = "9.1.2"
 actix-web = "4.1.0"
+actix-files = "0.6.1"
 either = { version = "1.6.1", features = ["serde"] }
 strum = { version = "0.24", features = ["derive"] }
 

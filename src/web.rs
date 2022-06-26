@@ -129,14 +129,20 @@ pub async fn run_server(
 	db: Arc<Mutex<FertilizersDb>>,
 	known_elements: Arc<Mutex<KnownElements>>,
 	listen_addr: impl ToSocketAddrs,
+	static_dir: Option<String>,
 ) -> std::io::Result<()> {
 	let state = WebState { db: db.clone(), known_elements: known_elements.clone() };
 
 	HttpServer::new(move || {
-		App::new()
+		let app = App::new()
 			.app_data(web::Data::new(state.clone()))
 			.service(list_db)
-			.service(fertilizer_info)
+			.service(fertilizer_info);
+		if let Some(dir) = &static_dir {
+			app.service(actix_files::Files::new("/", dir.as_str()))
+		} else {
+			app
+		}
 	})
 	.bind(listen_addr)?
 	.run()

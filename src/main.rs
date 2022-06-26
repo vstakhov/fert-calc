@@ -135,6 +135,9 @@ pub(crate) struct Opts {
 	/// Work as a web server
 	#[clap(long, short = 's')]
 	serve: Option<SocketAddr>,
+	/// Add static directory to serve
+	#[clap(long)]
+	static_dir: Option<String>,
 }
 
 #[actix_web::main]
@@ -168,9 +171,14 @@ async fn main() -> Result<()> {
 	}
 
 	if let Some(listen_addr) = opts.serve {
-		return web::run_server(Arc::new(Mutex::new(fertilizers_db)), Arc::new(Mutex::new(known_elements)), listen_addr)
-			.await
-			.map_err(|e| anyhow!("server error: {:?}", e))
+		return web::run_server(
+			Arc::new(Mutex::new(fertilizers_db)),
+			Arc::new(Mutex::new(known_elements)),
+			listen_addr,
+			opts.static_dir.clone(),
+		)
+		.await
+		.map_err(|e| anyhow!("server error: {:?}", e))
 	}
 
 	let config = rustyline::Config::builder()
