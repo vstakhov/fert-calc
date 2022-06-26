@@ -11,6 +11,7 @@ use either::{Either, Left, Right};
 use serde::{Deserialize, Serialize};
 use std::{
 	fmt,
+	net::ToSocketAddrs,
 	sync::{Arc, Mutex},
 };
 use strum::EnumString;
@@ -127,6 +128,7 @@ async fn calc(data: web::Json<CalcData>, state: web::Data<WebState>) -> Result<i
 pub async fn run_server(
 	db: Arc<Mutex<FertilizersDb>>,
 	known_elements: Arc<Mutex<KnownElements>>,
+	listen_addr: impl ToSocketAddrs,
 ) -> std::io::Result<()> {
 	let state = WebState { db: db.clone(), known_elements: known_elements.clone() };
 
@@ -136,7 +138,7 @@ pub async fn run_server(
 			.service(list_db)
 			.service(fertilizer_info)
 	})
-	.bind(("127.0.0.1", 8080))?
+	.bind(listen_addr)?
 	.run()
 	.await
 }

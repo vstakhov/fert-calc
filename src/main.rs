@@ -11,6 +11,7 @@ use rustyline::{
 };
 use std::{
 	fs,
+	net::SocketAddr,
 	path::PathBuf,
 	sync::{Arc, Mutex},
 };
@@ -133,7 +134,7 @@ pub(crate) struct Opts {
 	absolute: bool,
 	/// Work as a web server
 	#[clap(long, short = 's')]
-	serve: bool,
+	serve: Option<SocketAddr>,
 }
 
 #[actix_web::main]
@@ -166,8 +167,8 @@ async fn main() -> Result<()> {
 		return Ok(())
 	}
 
-	if opts.serve {
-		return web::run_server(Arc::new(Mutex::new(fertilizers_db)), Arc::new(Mutex::new(known_elements)))
+	if let Some(listen_addr) = opts.serve {
+		return web::run_server(Arc::new(Mutex::new(fertilizers_db)), Arc::new(Mutex::new(known_elements)), listen_addr)
 			.await
 			.map_err(|e| anyhow!("server error: {:?}", e))
 	}
