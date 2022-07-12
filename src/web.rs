@@ -4,10 +4,9 @@ use crate::{compound, concentration::*, elements::KnownElements, tank::Tank, Dil
 use actix_web::{
 	get,
 	http::{header::ContentType, StatusCode},
-	web, App, HttpResponse, HttpServer, Responder, Result,
+	post, web, App, HttpResponse, HttpServer, Responder, Result,
 };
 use anyhow::anyhow;
-use either::{Either, Left, Right};
 use serde::{Deserialize, Serialize};
 use std::{
 	fmt,
@@ -90,16 +89,22 @@ impl From<serde_json::Error> for WebError {
 	}
 }
 
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "type")]
+enum WebDosingInput {
+	Dry(DryDosing),
+	Solution(SolutionDosing),
+}
+
 // Generic calculation request for a specific tank and compound/ready fertilizer
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 struct CalcData {
 	tank: Tank,
 	fertilizer: String,
-	#[serde(with = "either::serde_untagged")]
-	dosing_data: Either<DryDosing, SolutionDosing>,
+	dosing_data: WebDosingInput,
 }
 
-#[get("/calc")]
+#[post("/calc")]
 async fn calc(data: web::Json<CalcData>, state: web::Data<WebState>) -> Result<impl Responder> {
 	let locked_db = state.db.lock().unwrap();
 	let maybe_known_fertilizer = locked_db.known_fertilizers.get(data.fertilizer.as_str());
@@ -115,10 +120,10 @@ async fn calc(data: web::Json<CalcData>, state: web::Data<WebState>) -> Result<i
 	};
 	let tank = &data.tank;
 	let dosages = match &data.dosing_data {
-		Left(dry_dosing) => dry_dosing
+		WebDosingInput::Dry(dry_dosing) => dry_dosing
 			.dilute(&*real_ferilizer, &locked_elts, tank)
 			.map_err(|e| -> WebError { e.into() })?,
-		Right(solution_dosing) => solution_dosing
+		WebDosingInput::Solution(solution_dosing) => solution_dosing
 			.dilute(&*real_ferilizer, &locked_elts, tank)
 			.map_err(|e| -> WebError { e.into() })?,
 	};
@@ -137,6 +142,7 @@ pub async fn run_server(
 		let app = App::new()
 			.app_data(web::Data::new(state.clone()))
 			.service(list_db)
+			.service(calc)
 			.service(fertilizer_info);
 		if let Some(dir) = &static_dir {
 			app.service(actix_files::Files::new("/", dir.as_str()).index_file("index.html"))
@@ -166,7 +172,7 @@ mod tests {
 		CalcData {
 			fertilizer: "KNO3".to_owned(),
 			tank: sample_tank(),
-			dosing_data: Left(DryDosing {
+			dosing_data: WebDosingInput::Dry(DryDosing {
 				dilute_input: 10.0,
 				target_element: Some("NO3".to_owned()),
 				what: DiluteCalcType::TargetDose,
@@ -177,10 +183,10 @@ mod tests {
 		CalcData {
 			fertilizer: "KNO3".to_owned(),
 			tank: sample_tank(),
-			dosing_data: Right(SolutionDosing {
+			dosing_data: WebDosingInput::Solution(SolutionDosing {
 				portion_volume: 20.0,
 				container_volume: 1000.0,
-				dose: 10.0,
+				solution_input: 10.0,
 				target_element: Some("NO3".to_owned()),
 				what: DiluteCalcType::TargetDose,
 			}),
@@ -221,13 +227,13 @@ mod tests {
 		let app_state = new_state();
 		let app = test::init_service(App::new().app_data(web::Data::new(app_state.clone())).service(calc)).await;
 		let dry_dose = new_calc_data_dry();
-		let req = test::TestRequest::get().uri("/calc").set_json(&dry_dose).to_request();
+		let req = test::TestRequest::post().uri("/calc").set_json(&dry_dose).to_request();
 		let resp: DiluteResult = test::call_and_read_body_json(&app, req).await;
 		// Tank 170, target: 10ppm NO3
 		assert_delta_eq!(resp.compound_dose, 2.772, MOLAR_MASS_EPSILON);
 
-		let dry_dose = new_calc_data_solution();
-		let req = test::TestRequest::get().uri("/calc").set_json(&dry_dose).to_request();
+		let solution_dose = new_calc_data_solution();
+		let req = test::TestRequest::post().uri("/calc").set_json(&solution_dose).to_request();
 		let resp: DiluteResult = test::call_and_read_body_json(&app, req).await;
 		// Tank 170, target: 10ppm NO3, container: 1L, dose: 20ml
 		assert_delta_eq!(resp.compound_dose, 138.599, MOLAR_MASS_EPSILON);

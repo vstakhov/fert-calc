@@ -239,7 +239,7 @@ impl DiluteMethod for DryDosing {
 pub struct SolutionDosing {
 	pub container_volume: f64,
 	pub portion_volume: f64,
-	pub dose: f64,
+	pub solution_input: f64,
 	pub what: DiluteCalcType,
 	pub target_element: Option<String>,
 }
@@ -257,16 +257,22 @@ impl DiluteMethod for SolutionDosing {
 				let input: String = editor.readline("Portion size in ml: ")?;
 				let portion_volume = input.parse::<f64>()?;
 				let input: String = editor.readline("Dose size in grams (e.g. 2.5): ")?;
-				let dose = input.parse::<f64>()?;
-				Ok(Self { container_volume, portion_volume, dose, what, ..Default::default() })
+				let dilute_input = input.parse::<f64>()?;
+				Ok(Self { container_volume, portion_volume, solution_input: dilute_input, what, ..Default::default() })
 			},
 			DiluteCalcType::TargetDose => {
-				let (target_element, dose) = get_element_dose_target(known_elements, editor)?;
+				let (target_element, dilute_input) = get_element_dose_target(known_elements, editor)?;
 				let input: String = editor.readline("Container size in ml: ")?;
 				let container_volume = input.parse::<f64>()?;
 				let input: String = editor.readline("Portion size in ml: ")?;
 				let portion_volume = input.parse::<f64>()?;
-				Ok(Self { container_volume, portion_volume, dose, what, target_element: Some(target_element) })
+				Ok(Self {
+					container_volume,
+					portion_volume,
+					solution_input: dilute_input,
+					what,
+					target_element: Some(target_element),
+				})
 			},
 		}
 	}
@@ -286,28 +292,28 @@ impl DiluteMethod for SolutionDosing {
 
 	fn dilute(&self, fertilizer: &dyn Fertilizer, known_elements: &KnownElements, tank: &Tank) -> Result<DiluteResult> {
 		let concentrations = fertilizer.components_percentage(known_elements);
-		let dose = match self.what {
-			DiluteCalcType::ResultOfDose => self.dose,
-			DiluteCalcType::TargetDose => {
-				// Get target element concentration
-				let target_elt_name = self
-					.target_element
-					.as_ref()
-					.ok_or_else(|| anyhow!("no target element defined"))?
-					.as_str();
-				let (target_elt, elt_conc) = element_from_compound(target_elt_name, known_elements)?;
-				let fert_elt = concentrations
-					.get(
+		let dose =
+			match self.what {
+				DiluteCalcType::ResultOfDose => self.solution_input,
+				DiluteCalcType::TargetDose => {
+					// Get target element concentration
+					let target_elt_name = self
+						.target_element
+						.as_ref()
+						.ok_or_else(|| anyhow!("no target element defined"))?
+						.as_str();
+					let (target_elt, elt_conc) = element_from_compound(target_elt_name, known_elements)?;
+					let fert_elt =
 						concentrations
-							.iter()
-							.position(|elt| elt.element == target_elt)
-							.ok_or_else(|| anyhow!("target element {} is not in the fertilizer", target_elt_name))?,
-					)
-					.unwrap();
-				self.dose * tank.effective_volume() as f64 / (fert_elt.concentration * elt_conc) * self.container_volume /
-					self.portion_volume / 1000.0
-			},
-		};
+							.get(concentrations.iter().position(|elt| elt.element == target_elt).ok_or_else(|| {
+								anyhow!("target element {} is not in the fertilizer", target_elt_name)
+							})?)
+							.unwrap();
+					self.solution_input * tank.effective_volume() as f64 / (fert_elt.concentration * elt_conc) *
+						self.container_volume / self.portion_volume /
+						1000.0
+				},
+			};
 		let mult = (dose * 1000.0 / self.container_volume * self.portion_volume) / tank.effective_volume() as f64;
 		let concentrations = dilute_fertilizer(concentrations, mult);
 		Ok(DiluteResult { compound_dose: dose, elements_dose: concentrations })
@@ -340,7 +346,7 @@ mod tests {
 		let known_elts = load_known_elements();
 		let compound: Box<dyn Fertilizer> = Box::new(Compound::new("KNO3", &known_elts).unwrap());
 		let dosing = Box::new(SolutionDosing {
-			dose: 10.0,
+			solution_input: 10.0,
 			container_volume: 1000.0,
 			portion_volume: 100.0,
 			what: DiluteCalcType::ResultOfDose,
