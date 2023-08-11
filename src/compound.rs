@@ -178,6 +178,7 @@ impl Compound {
 				hydrate.elements.iter().for_each(|(elt, cnt)| {
 					*new_compound.elements.entry(elt.clone()).or_default() += cnt;
 				});
+				break; // Stop parsing, as the rest is hydrate
 			} else {
 				// Ignore garbage stuff
 			}
@@ -297,5 +298,14 @@ mod tests {
 		assert_delta_eq!(braces.as_ref().unwrap().molar_mass(), 40.078, MOLAR_MASS_EPSILON);
 		let braces = Compound::new("(((Ca)))2", &known_elements);
 		assert_delta_eq!(braces.as_ref().unwrap().molar_mass(), 40.078 * 2.0, MOLAR_MASS_EPSILON);
+	}
+
+	#[test]
+	fn parse_hydrate() {
+		let known_elements = load_known_elements();
+		let cacl2_2h2o = Compound::new("CaCl2*2H2O", &known_elements);
+		assert_delta_eq!(cacl2_2h2o.as_ref().unwrap().molar_mass(), 147.014, MOLAR_MASS_EPSILON);
+		let cacl2_h2o = Compound::new("CaCl2*H2O", &known_elements);
+		assert_delta_eq!(cacl2_h2o.as_ref().unwrap().molar_mass(), 128.9993, MOLAR_MASS_EPSILON);
 	}
 }
