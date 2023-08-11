@@ -17,16 +17,11 @@ use std::{
 use strum::EnumString;
 
 /// How do we calculate dilution
-#[derive(Deserialize, Serialize, Clone, Copy, Debug, EnumString)]
+#[derive(Deserialize, Serialize, Clone, Copy, Debug, EnumString, Default)]
 pub enum DiluteCalcType {
+	#[default]
 	ResultOfDose,
 	TargetDose,
-}
-
-impl Default for DiluteCalcType {
-	fn default() -> Self {
-		DiluteCalcType::ResultOfDose
-	}
 }
 
 /// Element name and it's concentration

@@ -76,8 +76,8 @@ impl FertInputHelper {
 		Self {
 			fert_hints: fertilizers_db
 				.known_fertilizers
-				.iter()
-				.map(|(fname, _)| Pair { display: fname.clone(), replacement: fname.clone() })
+				.keys()
+				.map(|fname| Pair { display: fname.clone(), replacement: fname.clone() })
 				.collect::<Vec<_>>(),
 		}
 	}
