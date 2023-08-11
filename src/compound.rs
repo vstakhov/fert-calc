@@ -76,6 +76,32 @@ impl Compound {
 		Ok(false)
 	}
 
+	fn new_hydrate(formula: &str, known_elts: &KnownElements) -> Result<Self> {
+
+		if formula.len() < 2 {
+			return Err(anyhow!("Invalid hydrate formula: {}", formula))
+		}
+
+		let first_c = formula.chars().next().expect("checked len above; qed.");
+		let mult = if first_c.is_ascii_digit() {
+			first_c.to_digit(10).expect("checked above; qed.")
+		}
+		else {
+			1
+		};
+
+		let remain = if first_c.is_ascii_digit() {
+			&formula[1..]
+		}
+		else {
+			formula
+		};
+
+		let mut compound = Compound::new(remain, known_elts)?;
+		compound.elements.values_mut().for_each(|v| *v *= mult);
+		Ok(compound)
+	}
+
 	/// Parses formula from a trivial string knowing some elements
 	pub fn new(formula: &str, known_elts: &KnownElements) -> Result<Self> {
 		let mut acc = String::new();
@@ -87,7 +113,7 @@ impl Compound {
 		let mut ebraces = 0;
 		new_compound.name = formula.to_owned();
 
-		for chr in formula.chars() {
+		for (pos,chr) in formula.chars().enumerate() {
 			if obraces > 0 {
 				if chr == ')' {
 					ebraces += 1;
@@ -144,6 +170,14 @@ impl Compound {
 				last_cnt = None;
 				last_subcompound = None;
 				obraces += 1;
+			} else if chr == '*' {
+				// Hydrate addition
+				let hydrate = Compound::new_hydrate(&formula[pos+1..], known_elts)?;
+				// Add hydrate definition to the original formula, as we need that
+				// to calculate molecular mass
+				hydrate.elements.iter().for_each(|(elt, cnt)| {
+					*new_compound.elements.entry(elt.clone()).or_default() += cnt;
+				});
 			} else {
 				// Ignore garbage stuff
 			}
