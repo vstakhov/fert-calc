@@ -7,7 +7,7 @@ use rustyline::{
 	highlight::Highlighter,
 	hint::Hinter,
 	validate::Validator,
-	CompletionType, Context, EditMode, Helper, OutputStreamType,
+	CompletionType, Context, EditMode, Helper,
 };
 use std::{
 	fs,
@@ -34,26 +34,26 @@ mod traits;
 mod test_utils;
 mod web;
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy, clap::ArgEnum)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, clap::ValueEnum)]
 enum TankInputMode {
 	Linear,
 	Volume,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy, clap::ArgEnum)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, clap::ValueEnum)]
 enum DosingMethod {
 	Dry,
 	Solution,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy, clap::ArgEnum)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, clap::ValueEnum)]
 enum FertilizerType {
 	Any,
 	Compound,
 	Mix,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy, clap::ArgEnum)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, clap::ValueEnum)]
 enum CalculationType {
 	Dose,
 	Target,
@@ -106,25 +106,25 @@ impl Completer for FertInputHelper {
 #[derive(Debug, Parser)]
 pub(crate) struct Opts {
 	/// Path to the elements toml database to use instead of the embedded one
-	#[clap(long, parse(from_os_str))]
+	#[clap(long)]
 	elements: Option<PathBuf>,
 	/// How a tank data is added
-	#[clap(long, arg_enum, default_value = "volume")]
+	#[clap(long, value_enum, default_value = "volume")]
 	tank_input: TankInputMode,
 	/// Optional path for a toml file with tank definition
-	#[clap(long, parse(from_os_str))]
+	#[clap(long)]
 	tank_toml: Option<PathBuf>,
 	/// How a fertiliser is added
-	#[clap(long, arg_enum, default_value = "dry")]
+	#[clap(long, value_enum, default_value = "dry")]
 	dosing_method: DosingMethod,
 	/// What type of fertilizer is checked
-	#[clap(long, arg_enum, default_value = "any")]
+	#[clap(long, value_enum, default_value = "any")]
 	fertilizer: FertilizerType,
 	/// Path to fertilizers database in toml format instead of the embedded database
-	#[clap(long, parse(from_os_str))]
+	#[clap(long)]
 	database: Vec<PathBuf>,
 	/// What type of calculation is desired
-	#[clap(long, arg_enum, default_value = "dose")]
+	#[clap(long, value_enum, default_value = "dose")]
 	calc: CalculationType,
 	/// List the available fertilizers loaded from the database and exit
 	#[clap(long, short = 'l')]
@@ -184,12 +184,11 @@ async fn main() -> Result<()> {
 	let config = rustyline::Config::builder()
 		.completion_type(CompletionType::List)
 		.edit_mode(EditMode::Vi)
-		.output_stream(OutputStreamType::Stdout)
 		.build();
-	let mut fert_editor = rustyline::Editor::with_config(config);
+	let mut fert_editor = rustyline::Editor::with_config(config).unwrap();
 	fert_editor.set_helper(Some(FertInputHelper::new(&fertilizers_db)));
 
-	let mut generic_editor = rustyline::Editor::<()>::with_config(config);
+	let mut generic_editor = traits::Editor::<()>::with_config(config).unwrap();
 
 	let fertilizer: Box<dyn Fertilizer + Send> = match opts.fertilizer {
 		FertilizerType::Any => {

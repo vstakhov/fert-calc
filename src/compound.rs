@@ -77,25 +77,14 @@ impl Compound {
 	}
 
 	fn new_hydrate(formula: &str, known_elts: &KnownElements) -> Result<Self> {
-
 		if formula.len() < 2 {
 			return Err(anyhow!("Invalid hydrate formula: {}", formula))
 		}
 
 		let first_c = formula.chars().next().expect("checked len above; qed.");
-		let mult = if first_c.is_ascii_digit() {
-			first_c.to_digit(10).expect("checked above; qed.")
-		}
-		else {
-			1
-		};
+		let mult = if first_c.is_ascii_digit() { first_c.to_digit(10).expect("checked above; qed.") } else { 1 };
 
-		let remain = if first_c.is_ascii_digit() {
-			&formula[1..]
-		}
-		else {
-			formula
-		};
+		let remain = if first_c.is_ascii_digit() { &formula[1..] } else { formula };
 
 		let mut compound = Compound::new(remain, known_elts)?;
 		compound.elements.values_mut().for_each(|v| *v *= mult);
@@ -113,7 +102,7 @@ impl Compound {
 		let mut ebraces = 0;
 		new_compound.name = formula.to_owned();
 
-		for (pos,chr) in formula.chars().enumerate() {
+		for (pos, chr) in formula.chars().enumerate() {
 			if obraces > 0 {
 				if chr == ')' {
 					ebraces += 1;
@@ -172,13 +161,13 @@ impl Compound {
 				obraces += 1;
 			} else if chr == '*' {
 				// Hydrate addition
-				let hydrate = Compound::new_hydrate(&formula[pos+1..], known_elts)?;
+				let hydrate = Compound::new_hydrate(&formula[pos + 1..], known_elts)?;
 				// Add hydrate definition to the original formula, as we need that
 				// to calculate molecular mass
 				hydrate.elements.iter().for_each(|(elt, cnt)| {
 					*new_compound.elements.entry(elt.clone()).or_default() += cnt;
 				});
-				break; // Stop parsing, as the rest is hydrate
+				break // Stop parsing, as the rest is hydrate
 			} else {
 				// Ignore garbage stuff
 			}
@@ -197,7 +186,10 @@ impl Compound {
 	}
 
 	/// Returns a compound from stdin
-	pub fn new_from_stdin<T: rustyline::Helper>(known_elts: &KnownElements, editor: &mut Editor<T>) -> Result<Self> {
+	pub fn new_from_stdin<T: rustyline::Helper>(
+		known_elts: &KnownElements,
+		editor: &mut Editor<T, rustyline::history::DefaultHistory>,
+	) -> Result<Self> {
 		let input_compound: String = editor.readline("Input compound (e.g. KNO3): ")?;
 		Compound::new(input_compound.as_str(), known_elts)
 	}

@@ -5,7 +5,7 @@ use crate::{
 };
 use anyhow::Result;
 use dyn_clone::DynClone;
-use rustyline::{Editor, Helper};
+use rustyline::Helper;
 
 /// A generic representation of the fertilizer, must return components percentage for the fertilizer
 pub trait Fertilizer: DynClone {
@@ -14,6 +14,7 @@ pub trait Fertilizer: DynClone {
 	fn description(&self) -> String;
 }
 
+pub type Editor<T> = rustyline::Editor<T, rustyline::history::DefaultHistory>;
 /// Represents a concentration after adding some fertilizer to the specific tank
 pub trait DiluteMethod {
 	/// Load dilute method from stdin

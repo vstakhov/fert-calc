@@ -1,8 +1,14 @@
-use crate::{compound::Compound, elements::*, tank::Tank, traits::DiluteMethod, Fertilizer};
+use crate::{
+	compound::Compound,
+	elements::*,
+	tank::Tank,
+	traits::{DiluteMethod, Editor},
+	Fertilizer,
+};
 use anyhow::{anyhow, Result};
 use crossterm::style::Stylize;
 use itertools::Itertools;
-use rustyline::{Editor, Helper};
+use rustyline::Helper;
 use serde::{Deserialize, Serialize};
 use std::{
 	cmp::Ordering,

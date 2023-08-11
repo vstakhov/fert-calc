@@ -5,12 +5,13 @@ use std::{
 };
 
 use itertools::Itertools;
-use rustyline::{Editor, Helper};
+use rustyline::Helper;
 
 use crate::{
 	compound::Compound,
 	concentration::{ElementConcentrationAlias, ElementsConcentrationsWithAliases},
 	elements::{Element, KnownElements},
+	traits::Editor,
 	Fertilizer,
 };
 

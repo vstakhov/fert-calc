@@ -1,7 +1,8 @@
+use crate::traits::Editor;
 use anyhow::{anyhow, Result};
 use either::Either;
 use length::{Length, MetricUnit::*};
-use rustyline::{Editor, Helper};
+use rustyline::Helper;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Formatter};
 
