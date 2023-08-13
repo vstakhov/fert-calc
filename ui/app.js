@@ -152,6 +152,19 @@ $(function() {
   $("#formSolutionDosing").hide();
   $("#formTargetDose").hide();
 
+  // Enable language panel
+  $('.switch-btn').click(function() {
+    var lang = $(this).data('lang');
+    $('h2').hide();
+    $('h2.' + lang).show();
+    $('.btn-outline-secondary').hide();
+    $('.btn-outline-secondary.' + lang).show();
+    $('.form-label').hide();
+    $('.form-label.' + lang).show();
+    $('.form-check-label').hide();
+    $('.form-check-label.' + lang).show();
+  });
+
   // Load fertilizers
   $.getJSON("/list", function(data) {
     $.each(data, function(idx, val) {

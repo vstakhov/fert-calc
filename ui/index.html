@@ -5,6 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fertilizers calculator</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+  <style>
+.language-switch {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.switch-btn {
+  margin: 5px;
+}
+.en, .de, .ru { display:none; }
+.en:lang(en), .de:lang(de), .ru:lang(ru) { display:block; }
+  </style>
 </head>
 <body>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
@@ -16,31 +28,49 @@
   <div class="container">
     
     
-
+    <div class="row">
+          <div class="col-6">
+            <div class="language-switch">
+              <button class="switch-btn" data-lang="en">English</button>
+              <button class="switch-btn" data-lang="ru">Русский</button>
+              <button class="switch-btn" data-lang="de">Deutsch</button>
+            </div>
+          </div>
+    </div>
     <div class="row">
       <div class="col-8">
         <div class="row">
           <div class="col-6">
-            <h2>Fertilizer selection</h2>
+            <h2 class="en">Fertilizer selection</h2>
+            <h2 class="ru">Выбор удобрений</h2>
+            <h2 class="de">Düngemittelauswahl</h2>
+
             <div class="mb-3" id="formFertRadio">
               <div class="btn-group" role="group" aria-label="Fertilizer selection">
                 <input type="radio" class="btn-check" name="btnradio" id="premixRadio" autocomplete="off" checked>
-                <label class="btn btn-outline-secondary" for="premixRadio">Pre-mixed</label>
-                
+                <label class="btn btn-outline-secondary en" for="premixRadio">Pre-mixed</label>
+                <label class="btn btn-outline-secondary ru" for="premixRadio">Готовые смеси</label>
+                <label class="btn btn-outline-secondary de" for="premixRadio">Fertig gemischt</label>
+
                 <input type="radio" class="btn-check" name="btnradio" id="compoundRadio" autocomplete="off">
-                <label class="btn btn-outline-secondary" for="compoundRadio">Compound</label>
+                <label class="btn btn-outline-secondary en" for="compoundRadio">Compound</label>
+                <label class="btn btn-outline-secondary ru" for="compoundRadio">Составные</label>
+                <label class="btn btn-outline-secondary de" for="compoundRadio">Zusammengesetzt</label>
               </div>
             </div>
             
-            
             <div class="mb-3" id="formPremixed">
-              <label for="mixSelect" class="form-label">Select mix from the list</label>
+              <label for="mixSelect" class="form-label en">Select mix from the list</label>
+              <label for="mixSelect" class="form-label ru">Выберите смесь из списка</label>
+              <label for="mixSelect" class="form-label de">Mischung auswählen</label>
               <select class="form-select" id="mixSelect">
               </select>
             </div>
-            
             <div class="mb-3" id="formCompound">
-              <label for="mixSelect" class="form-label">Enter the compound formula</label>
+              <label for="compoundInput" class="form-label en">Enter the compound formula</label>
+              <label for="compoundInput" class="form-label ru">Введите формулу соединения</label>
+              <label for="compoundInput" class="form-label de">Geben Sie die Verbindungsformel ein</label>
+              
               <div class="input-group mb-3">
                 <input type="text" class="form-control" placeholder="KNO3" id="compoundInput">
               </div>
@@ -48,79 +78,129 @@
           </div>
           
           <div class="col-6">
-            <h2>Tank selection</h2>
-            <div class="mb-3" id="formVolumeRadio">
-              <div class="btn-group" role="group" aria-label="Volume select">
-                <input type="radio" class="btn-check" name="btnradio1" id="volumeRadio" autocomplete="off" checked>
-                <label class="btn btn-outline-secondary" for="volumeRadio">Volume</label>
-                
-                <input type="radio" class="btn-check" name="btnradio1" id="dimRadio" autocomplete="off">
-                <label class="btn btn-outline-secondary" for="dimRadio">Dimensions</label>
-              </div>
+          <h2 class="en">Tank selection</h2>
+          <h2 class="ru">Выбор аквариума</h2>
+          <h2 class="de">Aquariumauswahl</h2>
+
+          <div class="mb-3" id="formVolumeRadio">
+            <div class="btn-group" role="group" aria-label="Volume select">
+              <input type="radio" class="btn-check" name="btnradio1" id="volumeRadio" autocomplete="off" checked>
+              <label class="btn btn-outline-secondary en" for="volumeRadio">Volume</label>
+              <label class="btn btn-outline-secondary ru" for="volumeRadio">Объем</label>
+              <label class="btn btn-outline-secondary de" for="volumeRadio">Volumen</label>
+
+              <input type="radio" class="btn-check" name="btnradio1" id="dimRadio" autocomplete="off">
+              <label class="btn btn-outline-secondary en" for="dimRadio">Dimensions</label>
+              <label class="btn btn-outline-secondary ru" for="dimRadio">Размеры</label>
+              <label class="btn btn-outline-secondary de" for="dimRadio">Abmessungen</label>
             </div>
+          </div>
+
+          <div class="mb-3" id="formVolume">
+            <label for="tankVolume" class="form-label en">Enter tank volume in liters</label>
+            <label for="tankVolume" class="form-label ru">Введите объем аквариума в литрах</label>
+            <label for="tankVolume" class="form-label de">Geben Sie das Volumen des Aquariums in Litern ein</label>
+
+            <input type="text" class="form-control" id="tankVolume" placeholder="100">
+            <input class="form-check-input" type="checkbox" value="" id="checkAbsoluteVolume">
+            <label class="form-check-label en" for="checkAbsoluteVolume">Absolute volume (no real volume correction)</label>
+            <label class="form-check-label ru" for="checkAbsoluteVolume">Абсолютный объем (без коррекции реального объема)</label>
+            <label class="form-check-label de" for="checkAbsoluteVolume">Absolutes Volumen (keine echte Volumenkorrektur)</label>
+          </div>
+
+          <div class="mb-3" id="formDimensions">
+            <label for="tankLength" class="form-label en">Enter tank length in cm</label>
+            <label for="tankLength" class="form-label ru">Введите длину аквариума в см</label>
+            <label for="tankLength" class="form-label de">Geben Sie die Länge des Aquariums in cm ein</label>
+
+            <input type="text" class="form-control" id="tankLength" placeholder="90">
+            <label for="tankWidth" class="form-label en">Enter tank width in cm</label>
+            <label for="tankWidth" class="form-label ru">Введите ширину аквариума в см</label>
+            <label for="tankWidth" class="form-label de">Geben Sie die Breite des Aquariums in cm ein</label>
+
+            <input type="text" class="form-control" id="tankWidth" placeholder="50">
+            <label for="tankHeight" class="form-label en">Enter tank height in cm</label>
+            <label for="tankHeight" class="form-label ru">Введите высоту аквариума в см</label>
+            <label for="tankHeight" class="form-label de">Geben Sie die Höhe des Aquariums in cm ein</label>
+
+            <input type="text" class="form-control" id="tankHeight" placeholder="50">
+          </div>
+  
             
-            <div class="mb-3" id="formVolume">
-              <label for="tankVolume" class="form-label">Enter tank volume in liters</label>
-              <input type="text" class="form-control" id="tankVolume" placeholder="100">
-              <input class="form-check-input" type="checkbox" value="" id="checkAbsoluteVolume">
-              <label class="form-check-label" for="checkAbsoluteVolume">
-                Absolute volume (no real volume correction)
-              </label>
-            </div>
-            
-            <div class="mb-3" id="formDimensions">
-              <label for="tankLength" class="form-label">Enter tank length in cm</label>
-              <input type="text" class="form-control" id="tankLength" placeholder="90">
-              <label for="tankWidth" class="form-label">Enter tank width in cm</label>
-              <input type="text" class="form-control" id="tankWidth" placeholder="50">
-              <label for="tankHeight" class="form-label">Enter tank height in cm</label>
-              <input type="text" class="form-control" id="tankHeight" placeholder="50">
-            </div>
-            
-            
-            <h2>Dillution selection</h2>
+
+            <h2 class="en">Dilution selection</h2>
+            <h2 class="ru">Выбор разведения</h2>
+            <h2 class="de">Verdünnungsauswahl</h2>
+
             <div class="mb-3" id="formDosingRadio">
               <div class="btn-group" role="group" aria-label="Dosing method">
                 <input type="radio" class="btn-check" name="btnradio2" id="dryRadio" autocomplete="off" checked>
-                <label class="btn btn-outline-secondary" for="dryRadio">Dry dosing</label>
-                
+                <label class="btn btn-outline-secondary en" for="dryRadio">Dry dosing</label>
+                <label class="btn btn-outline-secondary ru" for="dryRadio">Сухая дозировка</label>
+                <label class="btn btn-outline-secondary de" for="dryRadio">Trockene Dosierung</label>
+
                 <input type="radio" class="btn-check" name="btnradio2" id="solutionRadio" autocomplete="off">
-                <label class="btn btn-outline-secondary" for="solutionRadio">Solution</label>
+                <label class="btn btn-outline-secondary en" for="solutionRadio">Solution</label>
+                <label class="btn btn-outline-secondary ru" for="solutionRadio">Раствор</label>
+                <label class="btn btn-outline-secondary de" for="solutionRadio">Lösung</label>
               </div>
             </div>
+
             
-            <div class="mb-3" id="formSolutionDosing">
-              <label for="solutionVolume" class="form-label">Enter container volume in milliliters</label>
-              <input type="text" class="form-control" id="solutionVolume" placeholder="1000">
-              <label for="solutionVolume" class="form-label">Enter dose volume in milliliters</label>
-              <input type="text" class="form-control" id="doseVolume" placeholder="10">
-            </div>
-            
-            <h2>Calculation selection</h2>
-            <div class="mb-3" id="formCalcRadio">
-              <div class="btn-group" role="group" aria-label="Dosing method">
-                <input type="radio" class="btn-check" name="btnradio3" id="resultDoseRadio" autocomplete="off" checked>
-                <label class="btn btn-outline-secondary" for="resultDoseRadio">Result of my dose</label>
-                
-                <input type="radio" class="btn-check" name="btnradio3" id="targetDoseRadio" autocomplete="off">
-                <label class="btn btn-outline-secondary" for="targetDoseRadio">Dose to reach the target</label>
+              <div class="mb-3" id="formSolutionDosing">
+                <label for="solutionVolume" class="form-label en">Enter container volume in milliliters</label>
+                <label for="solutionVolume" class="form-label ru">Введите объем контейнера в миллилитрах</label>
+                <label for="solutionVolume" class="form-label de">Geben Sie das Behältervolumen in Millilitern ein</label>
+
+                <input type="text" class="form-control" id="solutionVolume" placeholder="1000">
+                <label for="doseVolume" class="form-label en">Enter dose volume in milliliters</label>
+                <label for="doseVolume" class="form-label ru">Введите объем дозы в миллилитрах</label>
+                <label for="doseVolume" class="form-label de">Geben Sie das Dosisvolumen in Millilitern ein</label>
+
+                <input type="text" class="form-control" id="doseVolume" placeholder="10">
+              </div> 
+              <h2 class="en">Calculation selection</h2>
+              <h2 class="ru">Выбор расчета</h2>
+              <h2 class="de">Berechnungsauswahl</h2>
+
+              <div class="mb-3" id="formCalcRadio">
+                <div class="btn-group" role="group" aria-label="Dosing method">
+                  <input type="radio" class="btn-check" name="btnradio3" id="resultDoseRadio" autocomplete="off" checked>
+                  <label class="btn btn-outline-secondary en" for="resultDoseRadio">Result of my dose</label>
+                  <label class="btn btn-outline-secondary ru" for="resultDoseRadio">Результат моей дозы</label>
+                  <label class="btn btn-outline-secondary de" for="resultDoseRadio">Ergebnis meiner Dosierung</label>
+
+                  <input type="radio" class="btn-check" name="btnradio3" id="targetDoseRadio" autocomplete="off">
+                  <label class="btn btn-outline-secondary en" for="targetDoseRadio">Dose to reach the target</label>
+                  <label class="btn btn-outline-secondary ru" for="targetDoseRadio">Доза для достижения цели</label>
+                  <label class="btn btn-outline-secondary de" for="targetDoseRadio">Dosis, um das Ziel zu erreichen</label>
+                </div>
               </div>
-            </div>
-            
-            <div class="mb-3" id="formResultDose">
-              <label for="addedWeight" class="form-label">How much of the compound is added (in grams)</label>
-              <input type="text" class="form-control" id="addedWeight" placeholder="100">
-            </div>
-            <div class="mb-3" id="formTargetDose">
-              <label for="targetCompound" class="form-label">Enter target element or compund (e.g. P, or NO3)</label>
-              <input type="text" class="form-control" id="targetCompound" placeholder="NO3">
-              <label for="targetConcentration" class="form-label">Enter the desired concentration (in mg/l or ppm)</label>
-              <input type="text" class="form-control" id="targetConcentration" placeholder="10">
-            </div>
-            
-            <div class="mb-3" id="formSubmit">
-              <button type="button" class="btn btn-primary btn-lg" id="submitButton">Calculate</button>
-            </div>
+
+              <div class="mb-3" id="formResultDose">
+                <label for="addedWeight" class="form-label en">How much of the compound is added (in grams)</label>
+                <label for="addedWeight" class="form-label ru">Сколько соединения добавлено (в граммах)</label>
+                <label for="addedWeight" class="form-label de">Wie viel von der Verbindung wurde hinzugefügt (in Gramm)</label>
+
+                <input type="text" class="form-control" id="addedWeight" placeholder="100">
+              </div>
+
+              <div class="mb-3" id="formTargetDose">
+                <label for="targetCompound" class="form-label en">Enter target element or compound (e.g. P, or NO3)</label>
+                <label for="targetCompound" class="form-label ru">Введите целевой элемент или соединение (например, P или NO3)</label>
+                <label for="targetCompound" class="form-label de">Geben Sie das Ziel-Element oder Verbindung ein (z. B. P oder NO3)</label>
+
+                <input type="text" class="form-control" id="targetCompound" placeholder="NO3">
+                <label for="targetConcentration" class="form-label en">Enter the desired concentration (in mg/l or ppm)</label>
+                <label for="targetConcentration" class="form-label ru">Введите желаемую концентрацию (в мг/л или ppm)</label>
+                <label for="targetConcentration" class="form-label de">Geben Sie die gewünschte Konzentration ein (in mg/l oder ppm)</label>
+
+                <input type="text" class="form-control" id="targetConcentration" placeholder="10">
+              </div>
+
+              <div class="mb-3" id="formSubmit">
+                <button type="button" class="btn btn-primary btn-lg" id="submitButton">Calculate</button>
+              </div>
           </div>
         </div>
       </div>
