@@ -21,50 +21,121 @@ function sort_and_filter_elements(input) {
     });
 }
 
-function html_from_concentrations(data) {
-  var sorted_data = sort_and_filter_elements(data);
-  var preamble = '<h2>Compound information</h2>';
-  var header = '<table class="table table-striped table-hover"><thead><tr><th scope="col">Element/Alias</th><th scope="col">Concentration (%)</th></thead>';
-  var rows = sorted_data
-    .map(function(entry) {
-      var name = entry.element.name;
-      var res = '<tr><td>' + entry.element.name + '</td><td>' + (entry.concentration * 100.0).toFixed(3) + '</td></tr>';
-
-      if (entry.aliases) {
-        res += entry.aliases.map(alias => '<tr class="table-info"><td>' + alias.element_alias + '</td><td>' + (alias.concentration * 100.0).toFixed(3) + '</td></tr>').join('');
-      }
-      return res;
-    }).join('');
-
-    return preamble + header + rows + "</table>";
+function getStoredLanguage() {
+  return localStorage.getItem('selectedLanguage') || "en";
 }
+
+function html_from_concentrations(data) {
+  var lang = getStoredLanguage();
+  var sorted_data = sort_and_filter_elements(data);
+
+  var preamble = '';
+  var header = '';
+  var elementHeader, concentrationHeader;
+
+  if (lang === 'en' || !lang) {
+    preamble = '<h2>Compound information</h2>';
+    elementHeader = 'Element/Alias';
+    concentrationHeader = 'Concentration ppm';
+  } else if (lang === 'ru') {
+    preamble = '<h2>Информация о соединении</h2>';
+    elementHeader = 'Элемент/Псевдоним';
+    concentrationHeader = 'Концентрация мг/л'
+  } else if (lang === 'de') {
+    preamble = '<h2>Verbindungsinfos</h2>';
+    elementHeader = 'Element/Alias';
+    concentrationHeader = 'Konzentration ppm';
+  }
+
+  var tableHeader = '<table class="table table-striped table-hover"><thead><tr><th scope="col">' + elementHeader + '</th><th scope="col">' + concentrationHeader + '</th></thead>';
+
+  var rows = sorted_data
+      .map(function(entry) {
+        var name = entry.element.name;
+        var res = '<tr><td>' + entry.element.name + '</td><td>' + (entry.concentration * 100.0).toFixed(3) + '</td></tr>';
+
+        if (entry.aliases) {
+          res += entry.aliases.map(alias => '<tr class="table-info"><td>' + alias.element_alias + '</td><td>' + (alias.concentration * 100.0).toFixed(3) + '</td></tr>').join('');
+        }
+        return res;
+      }).join('');
+
+  return preamble + tableHeader + rows + '</table>';
+}
+
 
 function html_from_calculation(data, isTarget, fertilizer) {
   var sorted_data = sort_and_filter_elements(data.elements_dose);
-  var dosage = "<h2>Calculation results</h2>";
+  var dosage = '';
+  var dosageText;
+  var elementHeader;
+  var concentrationHeader;
+  var lang = getStoredLanguage();
 
-  if (isTarget) {
-    dosage += "<div class=\"container\">You need to add <strong>" + data.compound_dose.toFixed(3) + "g</strong> of the fertilizer (<i>" + fertilizer +
-     "</i>) to reach the following concentrations:</div>";
-  }
-  else {
-    dosage += "<div class=\"container\">After adding <strong>" + data.compound_dose.toFixed(3) + "g</strong> of the fertilizer (<i>" + fertilizer + 
-    "</i>) you will reach the following concentrations:</div>";
+  if (lang === 'en' || !lang) {
+    dosageText = 'Calculation results';
+    elementHeader = 'Element/Alias';
+    concentrationHeader = 'Concentration ppm';
+    dosage = "<h2>" + dosageText + "</h2>";
+    if (isTarget) {
+      dosage += "<div class=\"container\">You need to add <strong>" + data.compound_dose.toFixed(3) + "g</strong> of the fertilizer (<i>" + fertilizer +
+          "</i>) to reach the following concentrations:</div>";
+    } else {
+      dosage += "<div class=\"container\">After adding <strong>" + data.compound_dose.toFixed(3) + "g</strong> of the fertilizer (<i>" + fertilizer +
+          "</i>) you will reach the following concentrations:</div>";
+    }
+  } else if (lang === 'ru') {
+    dosageText = 'Результаты расчета';
+    dosage = "<h2>" + dosageText + "</h2>";
+    if (isTarget) {
+      dosage += "<div class=\"container\">Для достижения следующих концентраций необходимо добавить <strong>" + data.compound_dose.toFixed(3) + "г</strong> удобрения (<i>" + fertilizer +
+          "</i>):</div>";
+    } else {
+      dosage += "<div class=\"container\">После добавления <strong>" + data.compound_dose.toFixed(3) + "г</strong> удобрения (<i>" + fertilizer +
+          "</i>) будут следующие концентрации:</div>";
+    }
+    elementHeader = 'Элемент/Псевдоним';
+    concentrationHeader = 'Концентрация мг/л';
+  } else if (lang === 'de') {
+    dosageText = 'Berechnungsergebnisse';
+    dosage = "<h2>" + dosageText + "</h2>";
+    if (isTarget) {
+      dosage += "<div class=\"container\">Sie müssen <strong>" + data.compound_dose.toFixed(3) + "g</strong> des Düngemittels (<i>" + fertilizer +
+          "</i>) hinzufügen, um die folgenden Konzentrationen zu erreichen:</div>";
+    } else {
+      dosage += "<div class=\"container\">Nach Hinzufügen von <strong>" + data.compound_dose.toFixed(3) + "g</strong> des Düngemittels (<i>" + fertilizer +
+          "</i>) erreichen Sie die folgenden Konzentrationen:</div>";
+    }
+    elementHeader = 'Element/Alias';
+    concentrationHeader = 'Konzentration ppm';
   }
 
-  var header = '<table class="table table-striped table-hover"><thead><tr><th scope="col">Element/Alias</th><th scope="col">Concentration (ppm)</th></thead>';
+  var header = '<table class="table table-striped table-hover"><thead><tr><th scope="col">' +
+      elementHeader + '</th><th scope="col">' + concentrationHeader + '</th></thead>';
   var rows = sorted_data
-    .map(function(entry) {
-      var name = entry.element.name;
-      var res = '<tr><td>' + entry.element.name + '</td><td>' + (entry.dose).toFixed(3) + '</td></tr>';
+      .map(function(entry) {
+        var name = entry.element.name;
+        var res = '<tr><td>' + entry.element.name + '</td><td>' + (entry.dose).toFixed(3) + '</td></tr>';
 
-      if (entry.aliases) {
-        res += entry.aliases.map(alias => '<tr class="table-info"><td>' + alias.element_alias + '</td><td>' + (alias.dose).toFixed(3) + '</td></tr>').join('');
-      }
-      return res;
-    }).join('');
+        if (entry.aliases) {
+          res += entry.aliases.map(alias => '<tr class="table-info"><td>' + alias.element_alias + '</td><td>' + (alias.dose).toFixed(3) + '</td></tr>').join('');
+        }
+        return res;
+      }).join('');
 
-    return dosage + header + rows + "</table>";
+  return dosage + header + rows + '</table>';
+}
+
+function updateLanguage(lang) {
+  $('h2').hide();
+  $('h2.' + lang).show();
+  $('.btn-outline-secondary').hide();
+  $('.btn-outline-secondary.' + lang).show();
+  $('.form-label').hide();
+  $('.form-label.' + lang).show();
+  $('.form-check-label').hide();
+  $('.form-check-label.' + lang).show();
+  localStorage.setItem('selectedLanguage', lang);
 }
 
 $(function() {
@@ -74,6 +145,12 @@ $(function() {
   var dosingSolution = false;
   var targetDose = false;
 
+  // Check if a language is stored in local storage
+  var storedLang = getStoredLanguage();
+
+  // If a stored language is available, use it; otherwise, default to English
+  var lang = storedLang || 'en';
+  updateLanguage(lang);
 
   $("#volumeRadio").click(function() {
     volumeDimensions = false;
@@ -144,8 +221,8 @@ $(function() {
   $('#compoundInput').focusout(function(){
     $(this).trigger("enterKey");
   });
- 
-  
+
+
   // Hide non-default forms
   $("#formDimensions").hide();
   $("#formCompound").hide();
@@ -155,23 +232,16 @@ $(function() {
   // Enable language panel
   $('.switch-btn').click(function() {
     var lang = $(this).data('lang');
-    $('h2').hide();
-    $('h2.' + lang).show();
-    $('.btn-outline-secondary').hide();
-    $('.btn-outline-secondary.' + lang).show();
-    $('.form-label').hide();
-    $('.form-label.' + lang).show();
-    $('.form-check-label').hide();
-    $('.form-check-label.' + lang).show();
+    updateLanguage(lang);
   });
 
   // Load fertilizers
   $.getJSON("/list", function(data) {
     $.each(data, function(idx, val) {
-      $('#mixSelect').append($('<option>', { 
+      $('#mixSelect').append($('<option>', {
         value: val[0],
         text : val[0],
-        "data-bs-toggle": "tooltip", 
+        "data-bs-toggle": "tooltip",
         title: val[1]
       }));
     });
@@ -231,7 +301,7 @@ $(function() {
     else {
       dosing_data.type = "Dry";
     }
-  
+
     if (targetDose) {
       required_checks.targetConcentration = "number";
       required_checks.targetCompound = "string";
