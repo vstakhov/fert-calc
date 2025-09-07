@@ -14,7 +14,7 @@ pub trait Fertilizer: DynClone {
 	fn description(&self) -> String;
 }
 
-pub type Editor<T> = rustyline::Editor<T, rustyline::history::DefaultHistory>;
+pub type Editor<T> = rustyline::Editor<T, rustyline::history::FileHistory>;
 /// Represents a concentration after adding some fertilizer to the specific tank
 pub trait DiluteMethod {
 	/// Load dilute method from stdin
@@ -26,10 +26,12 @@ pub trait DiluteMethod {
 	where
 		Self: Sized;
 	/// Deserialize dilute method from TOML
+	#[allow(dead_code)]
 	fn new_from_toml(toml: &str) -> Result<Self>
 	where
 		Self: Sized;
 	/// Deserialize dilute method from JSON
+	#[allow(dead_code)]
 	fn new_from_json(json: &str) -> Result<Self>
 	where
 		Self: Sized;

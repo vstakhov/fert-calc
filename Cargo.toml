@@ -6,7 +6,7 @@ description = "A simple calculator for DIY aquarium fertilisers"
 version = "0.1.2"
 keywords = ["cli", "aquarium", "fertilizers"]
 license = "Apache-2.0"
-edition = "2021"
+edition = "2024"
 readme = "README.md"
 repository = "https://github.com/vstakhov/fert-calc"
 
@@ -14,18 +14,31 @@ repository = "https://github.com/vstakhov/fert-calc"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 anyhow = "1.0"
-crossterm = "0.27"
-accurate = { version = "0.3.1", features = [] }
+crossterm = "0.29.0"
+accurate = { version = "0.4.1", features = [] }
 clap = {version = "4.3", features = ["derive"] }
 length = "0.2"
-itertools = "0.11"
+itertools = "0.14.0"
 dyn-clone = "1.0"
-toml = "0.7"
-rustyline = "12.0"
+toml = "0.9.5"
+rustyline = "17.0.1"
 actix-web = "4.3"
 actix-files = "0.6"
 either = { version = "1.9", features = ["serde"] }
-strum = { version = "0.25", features = ["derive"] }
+strum = { version = "0.27.2", features = ["derive"] }
+slint = { version = "1.6", default-features = false, features = ["std", "compat-1-2", "renderer-software", "backend-winit"], optional = true }
+
+[build-dependencies]
+slint-build = "1.6"
+
+[features]
+default = []
+gui = ["dep:slint"]
+
+[[bin]]
+name = "gui"
+path = "src/bin/gui.rs"
+required-features = ["gui"]
 
 [profile.release]
 lto = true

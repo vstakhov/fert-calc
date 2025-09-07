@@ -185,7 +185,7 @@ async fn main() -> Result<()> {
 		.completion_type(CompletionType::List)
 		.edit_mode(EditMode::Vi)
 		.build();
-	let mut fert_editor = rustyline::Editor::with_config(config).unwrap();
+	let mut fert_editor = rustyline::Editor::with_config(config.clone()).unwrap();
 	fert_editor.set_helper(Some(FertInputHelper::new(&fertilizers_db)));
 
 	let mut generic_editor = traits::Editor::<()>::with_config(config).unwrap();

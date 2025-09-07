@@ -1,0 +1,81 @@
+import { Button, LineEdit, ComboBox, SpinBox, TextEdit, CheckBox } from "std-widgets.slint";
+
+export component AppWindow inherits Window {
+    width: 420px;
+    height: 520px;
+    title: "Fert Calc";
+
+    in-out property <string> result_summary: "";
+    in-out property <string> result_details: "";
+    in-out property <string> fertilizer_input: "";
+    in-out property <string> target_element: "";
+    in-out property <bool> absolute: false;
+    in-out property <[string]> known_fertilizers: [];
+    in-out property <[string]> filtered_fertilizers: [];
+    in-out property <string> filter: "";
+
+    callback compute(string, float, string, string, float, float, float, string, bool);
+    callback show_info(string);
+
+    VerticalLayout {
+        spacing: 8px;
+        padding: 12px;
+
+        Text { text: "Fertilizer (name or formula)"; }
+        fert := LineEdit { placeholder-text: "e.g. KNO3 or Urea"; text <=> root.fertilizer_input; }
+
+        Text { text: "Tank volume (L)"; }
+        tank_l := SpinBox { minimum: 1; maximum: 10000; value: 200; }
+
+        Text { text: "Dosing kind"; }
+        kind := ComboBox { model: ["Dry", "Solution"]; current-index: 0; }
+
+        Text { text: "Calculation"; }
+        calc := ComboBox { model: ["Result", "Target"]; current-index: 0; }
+        target := LineEdit { placeholder-text: "Target element or alias (e.g. NO3 or N)"; visible: calc.current_value == "Target"; text <=> root.target_element; }
+        absolute_cb := CheckBox { text: "Absolute volume"; checked <=> root.absolute; }
+
+        Text { text: "Amount (g for Dry, mg/L for Target)"; }
+        amount := SpinBox { minimum: 0; maximum: 100000; value: 2.5; }
+
+        Rectangle { height: 1px; width: 100%; background: #cccccc; }
+
+        Text { text: "Solution params"; }
+        VerticalLayout {
+            Text { text: "Known fertilizers"; }
+            HorizontalLayout {
+                filter_input := LineEdit { placeholder-text: "Filter..."; text <=> root.filter; accepted => { if (known_combo.model.length > 0) { root.fertilizer_input = known_combo.current_value; } } }
+                Button { text: "Use selected"; clicked => { if (known_combo.model.length > 0) { root.fertilizer_input = known_combo.current_value; } } }
+            }
+            known_combo := ComboBox { model: root.filtered_fertilizers; current-index: 0; }
+            HorizontalLayout {
+                Text { text: "Container ml"; }
+                container_ml := SpinBox { minimum: 1; maximum: 50000; value: 1000; }
+            }
+            HorizontalLayout {
+                Text { text: "Portion ml"; }
+                portion_ml := SpinBox { minimum: 1; maximum: 10000; value: 20; }
+            }
+        }
+
+        Button {
+            text: "Compute";
+            clicked => {
+                root.compute(fert.text, tank_l.value, kind.current_value, calc.current_value,
+                             amount.value, container_ml.value, portion_ml.value,
+                             target.text, absolute_cb.checked);
+            }
+        }
+        Button {
+            text: "Show components";
+            clicked => { root.show_info(fert.text); }
+        }
+
+        Rectangle { height: 1px; width: 100%; background: #cccccc; }
+
+        Text { text: result_summary; wrap: word-wrap; }
+        TextEdit { text: result_details; read-only: true; wrap: word-wrap; preferred-height: 200px; }
+    }
+}
+
+
