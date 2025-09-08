@@ -36,7 +36,7 @@ default = []
 gui = ["dep:slint"]
 
 [[bin]]
-name = "gui"
+name = "fert-calc-gui"
 path = "src/bin/gui.rs"
 required-features = ["gui"]
 

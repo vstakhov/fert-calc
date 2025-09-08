@@ -1,8 +1,8 @@
 import { Button, LineEdit, ComboBox, SpinBox, TextEdit, CheckBox } from "std-widgets.slint";
 
 export component AppWindow inherits Window {
-    width: 420px;
-    height: 520px;
+    preferred-width: 700px;
+    preferred-height: 600px;
     title: "Fert Calc";
 
     in-out property <string> result_summary: "";
@@ -44,10 +44,16 @@ export component AppWindow inherits Window {
         VerticalLayout {
             Text { text: "Known fertilizers"; }
             HorizontalLayout {
-                filter_input := LineEdit { placeholder-text: "Filter..."; text <=> root.filter; accepted => { if (known_combo.model.length > 0) { root.fertilizer_input = known_combo.current_value; } } }
-                Button { text: "Use selected"; clicked => { if (known_combo.model.length > 0) { root.fertilizer_input = known_combo.current_value; } } }
+                LineEdit { placeholder-text: "Filter..."; text <=> root.filter; }
             }
-            known_combo := ComboBox { model: root.filtered_fertilizers; current-index: 0; }
+            HorizontalLayout {
+                known_combo := ComboBox {
+                    model: root.filtered_fertilizers;
+                    current-index: 0;
+                    width: 100%;
+                    current_value <=> root.fertilizer_input;
+                }
+            }
             HorizontalLayout {
                 Text { text: "Container ml"; }
                 container_ml := SpinBox { minimum: 1; maximum: 50000; value: 1000; }

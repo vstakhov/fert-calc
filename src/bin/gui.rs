@@ -70,14 +70,18 @@ fn main() -> Result<()> {
 		list.sort();
 		let model = slint::ModelRc::new(slint::VecModel::from(list));
 		app.set_known_fertilizers(model.clone());
-		app.set_filtered_fertilizers(model);
+		app.set_filtered_fertilizers(model.clone());
+		// keep dropdown selection in sync with input
+		let _app_sync = app.as_weak();
+		// no explicit input change listener needed; bound in UI
 	}
 
 	let app_weak = app.as_weak();
-	app.on_compute(move |fertilizer, tank_l, dosing_kind, calc_type, amount, container_ml, portion_ml, target, absolute| {
+	app.on_compute(move |_, tank_l, dosing_kind, calc_type, amount, container_ml, portion_ml, target, absolute| {
 		let app = app_weak.unwrap();
+		let fertilizer = app.get_fertilizer_input();
 		let target_opt = if target.is_empty() { None } else { Some(target.as_str()) };
-		match compute_dose(&fertilizer.to_string(), tank_l as f64, &dosing_kind.to_string(), &calc_type.to_string(), amount as f64, container_ml as f64, portion_ml as f64, target_opt, absolute) {
+		match compute_dose(fertilizer.as_str(), tank_l as f64, &dosing_kind.to_string(), &calc_type.to_string(), amount as f64, container_ml as f64, portion_ml as f64, target_opt, absolute) {
 			Ok(result) => {
 				let summary = format!("Dose: {:.3} g", result.compound_dose);
 				let mut details = String::new();
@@ -105,13 +109,21 @@ fn main() -> Result<()> {
 				let mut details = String::new();
 				if let Some(f) = db.known_fertilizers.get(fertilizer.as_str()) {
 					for c in f.components_percentage(&known_elts).iter() {
-						details.push_str(&format!("{:?}\n", c));
+						details.push_str(&format!("Element: {} = {:.2}%", c.element.name, c.concentration * 100.0));
+						for a in c.aliases.iter() {
+							details.push_str(&format!(" as {}: {:.2}%", a.element_alias, a.concentration * 100.0));
+						}
+						details.push('\n');
 					}
 					app.set_result_summary(format!("Fertilizer: {}", f.name()).into());
 					app.set_result_details(details.into());
 				} else if let Ok(compound) = fert_calc::compound::Compound::new(fertilizer.as_str(), &known_elts) {
 					for c in compound.components_percentage(&known_elts).iter() {
-						details.push_str(&format!("{:?}\n", c));
+						details.push_str(&format!("Element: {} = {:.2}%", c.element.name, c.concentration * 100.0));
+						for a in c.aliases.iter() {
+							details.push_str(&format!(" as {}: {:.2}%", a.element_alias, a.concentration * 100.0));
+						}
+						details.push('\n');
 					}
 					app.set_result_summary(format!("Compound: {}", compound.name()).into());
 					app.set_result_details(details.into());
